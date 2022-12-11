@@ -1,53 +1,52 @@
-import gym
 import numpy as np
-from gym_envs_urdf.urdfenvs.robots.albert import AlbertRobot
-from gym_envs_urdf.urdfenvs.robots.generic_urdf import GenericUrdfReacher
+# from gym_envs_urdf.urdfenvs.robots.generic_urdf import GenericUrdfReacher
+from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
+import os
 
-def run_albert(n_steps=1000, render=False, goal=True, obstacles=True):
-    robots = [
-        AlbertRobot(mode="vel"),
-    ]
-    env = gym.make(
-        "urdf-env-v0",
-        dt=0.01, robots=robots, render=render
-    )
-    action = np.zeros(9)
-    action[0] = 5.0
-    ob = env.reset(
-        pos=np.array([1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.5, 0.0, 1.8, 0.5])
-    )
-    print(f"Initial observation : {ob}")
-    history = []
-    for _ in range(n_steps):
-        ob, _, _, _ = env.step(action)
-        history.append(ob)
-    env.close()
-    return history
+class Model(HolonomicRobot):
+    def __init__(self, urdf="mobilePandaWithGripper.urdf", mode="vel"):
+        self._urdf = urdf
+        self.dofs = [0, 1, 2, 4, 6, 8, 9]   # 0/0 - x-direction
+                                            # 1/1 - y-direction
+                                            # 2/2 - yaw
+                                            # 3/4 - arm joint 1
+                                            # 4/6 - arm joint 2
+                                            # 5/8 - arm joint 3
+                                            # 6/9 - arm joint 4
 
-def run_mobile_reacher(n_steps=1000, render=False, goal=True, obstacles=True):
-    robots = [
-        GenericUrdfReacher(urdf="mobilePandaWithGripper.urdf", mode="vel"),
-    ]
-    env = gym.make(
-        "urdf-env-v0",
-        dt=0.01, robots=robots, render=render
-    )
-    action = np.zeros(env.n())
-    action[2] = 0.5 
-    # action[2] = 0.5
-    # action[5] = -0.0
-    # action[-1] = 3.5
-    ob = env.reset()
-    print(f"Initial observation : {ob}")
-    history = []
-    for i in range(n_steps):
-        if (int(i / 100)) % 2 == 0:
-            action[-1] = -0.01
-            action[-2] = -0.01
-        else:
-            action[-1] = 0.01
-            action[-2] = 0.01
-        ob, _, _, _ = env.step(action)
-        history.append(ob)
-    env.close()
-    return history
+        #search for urdf in package if not found in cwd
+        if not os.path.exists(urdf):
+            root_dir = os.path.dirname(os.path.abspath(__file__))
+            urdf = None
+            for root, _, files in os.walk(root_dir):
+                for file in files:
+                    if file == self._urdf:
+                        urdf = os.path.join(root, file)
+            if urdf is None:
+                raise Exception(f"the request urdf {self._urdf} can not be found")
+            self._urdf = urdf
+
+        super().__init__(-1, self._urdf, mode=mode)
+
+    def act(self, joints):
+        return self.dofs[joints]
+
+    def set_joint_names(self):
+        # TODO Replace it with a automated extraction
+        self._joint_names = [joint.name for joint in self._urdf_robot._actuated_joints]
+
+    def set_acceleration_limits(self):
+        acc_limit = np.array(
+            # [1.0, 1.0, 15.0, 7.5, 12.5, 20.0, 20.0]
+            [1.0, 1.0, 15.0, 15.0, 7.5, 10.0, 12.5, 15.0, 20.0, 20.0, 1.0, 1.0]
+        )
+        self._limit_acc_j[0, :] = -acc_limit[0 : self.n()]
+        self._limit_acc_j[1, :] = acc_limit[0 : self.n()]
+
+    def check_state(self, pos, vel):
+        if not isinstance(pos, np.ndarray) or not pos.size == self.n():
+            center_position = (self._limit_pos_j[0] + self._limit_pos_j[1])/2
+            pos = center_position
+        if not isinstance(vel, np.ndarray) or not vel.size == self.n():
+            vel = np.zeros(self.n())
+        return pos, vel
