@@ -1,10 +1,12 @@
 import numpy as np
 # from gym_envs_urdf.urdfenvs.robots.generic_urdf import GenericUrdfReacher
-from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
+from urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
+import sys
+sys.path.insert(1, '../gym_envs_urdf')
 
 class Model(HolonomicRobot):
-    def __init__(self, urdf="mobilePandaWithGripper.urdf", mode="vel"):
+    def __init__(self, urdf="../urdfenvs/robots/generic_urdf/mobile_panda/mobilePandaWithGripper.urdf", mode="vel"):
         self._urdf = urdf
         self.dofs = [0, 1, 2, 4, 6, 8, 9]   # 0/0 - x-direction
                                             # 1/1 - y-direction
