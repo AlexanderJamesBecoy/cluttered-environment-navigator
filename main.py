@@ -63,6 +63,7 @@ if __name__ == "__main__":
         # end_pos = np.array([1.0, 1.0])
         # house.add_wall(start_pos, end_pos)
         house.generate_walls()
+        house.generate_doors()
 
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")
