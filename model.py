@@ -1,5 +1,4 @@
 import numpy as np
-# from gym_envs_urdf.urdfenvs.robots.generic_urdf import GenericUrdfReacher
 from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
 

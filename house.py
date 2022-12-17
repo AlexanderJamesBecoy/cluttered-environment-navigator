@@ -1,5 +1,6 @@
 import gym
 from door import Door
+# import pybullet as p
 import numpy as np
 
 class House:
@@ -72,10 +73,11 @@ class House:
             start_pos = points[i][0] - self.offset
             end_pos = points[i][1] - self.offset
             self.add_wall(start_pos, end_pos)
+            # shape_id = p.createCollisionShape(p.GEOM_BOX, halfExtents=dim)
 
-    def add_wall(self, start_pos, end_pos, wall_thickness=0.3, wall_height=0.5):
+    def add_wall(self, start_pos, end_pos, wall_thickness=0.1, wall_height=0.5):
     # This function draws a wall segment into gym `env` from a starting position `start_pos` to a final position `end_pos`.
-    # The default thickness `wall_thickness` and `wall_height` are 30 cm and 50 cm, respectively. They are modifiable.
+    # The default thickness `wall_thickness` and `wall_height` are 10 cm and 50 cm, respectively. They are modifiable.
 
         vec = end_pos - start_pos       # Obtain a vector from the two points.
         avg = (end_pos + start_pos)/2   # Obtain the average point between the two points, because
@@ -87,15 +89,15 @@ class House:
         self.env.add_shapes(shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos)   # Draw the wall as a geometrical box.
 
     def generate_doors(self):
-        door_bathroom = Door(self.env, pos=self.points['W']-self.offset, is_open=True, theta=0, is_flipped=True)
+        door_bathroom = Door(self.env, pos=self.points['W']-self.offset, is_open=False, theta=0, is_flipped=True)
         door_bathroom.draw_door()
-        door_outdoor = Door(self.env, pos=self.points['E']-self.offset, is_open=True, theta=np.pi)
+        door_outdoor = Door(self.env, pos=self.points['E']-self.offset, is_open=False, theta=np.pi)
         door_outdoor.draw_door()
-        door_bedroom1 = Door(self.env, pos=self.points['P']-self.offset, is_open=True, theta=0)
+        door_bedroom1 = Door(self.env, pos=self.points['P']-self.offset, is_open=False, theta=0)
         door_bedroom1.draw_door()
-        door_bedroom2 = Door(self.env, pos=self.points['P']-self.offset, is_open=True, theta=0.5*np.pi, is_flipped=True)
+        door_bedroom2 = Door(self.env, pos=self.points['P']-self.offset, is_open=False, theta=0.5*np.pi, is_flipped=True)
         door_bedroom2.draw_door()
-        door_kitchen = Door(self.env, pos=self.points['I']-self.offset, is_open=True, theta=-0.5*np.pi, is_flipped=True)
+        door_kitchen = Door(self.env, pos=self.points['I']-self.offset, is_open=False, theta=-0.5*np.pi, is_flipped=True)
         door_kitchen.draw_door()
 
 
