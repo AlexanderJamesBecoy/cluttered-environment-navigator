@@ -1,6 +1,9 @@
 import numpy as np
 from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
+# from urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
+import sys
+# sys.path.insert(1, '../gym_envs_urdf')
 
 class Model(HolonomicRobot):
     def __init__(self, urdf="mobilePandaWithGripper.urdf", mode="vel"):

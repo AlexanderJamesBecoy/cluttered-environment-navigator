@@ -2,6 +2,10 @@ import gym
 from door import Door
 # import pybullet as p
 import numpy as np
+from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
+
+HEIGHT = 0.5
+WIDTH = 0.3
 
 class House:
 # This class contains all the useful, but approximated, information that describes a house for which a mobile manipulator
@@ -11,13 +15,7 @@ class House:
 # - Doors
 # - Furniture
 
-    def __init__(self, env):
-    # Initialize an object of this class. It only requires the pointer to the gym environment `env`.
-    # Following declarations: 
-    # - `offset` to center the points around the origin (0,0).
-    # - `points` to describe the walls and door hinges (also a vertex describing the end of wall segment).
-    # - `doors` is a list of interactable door objects.
-
+    def __init__(self, env, robot_dim: list, scale: float):
         self.env = env
         self.offset = np.array([7.0, 3.5])
         self.points = {
@@ -46,6 +44,7 @@ class House:
             'W': np.array([12.0,1.0]),  # Wall vertex / Door hinge to the bathroom.
         }
         self.doors = []
+        self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
 
     def generate_walls(self):
     # This function generates and draw the fixed wall segments described in `self.points`.
@@ -73,7 +72,8 @@ class House:
             start_pos = points[i][0] - self.offset
             end_pos = points[i][1] - self.offset
             self.add_wall(start_pos, end_pos)
-            # shape_id = p.createCollisionShape(p.GEOM_BOX, halfExtents=dim)
+        
+        self.Obstacles.walls = np.array(self.Obstacles.walls)
 
     def add_wall(self, start_pos, end_pos, wall_thickness=0.1, wall_height=0.5):
     # This function draws a wall segment into gym `env` from a starting position `start_pos` to a final position `end_pos`.
@@ -84,20 +84,46 @@ class House:
                                         # gym `env` draws the shape centered.
         theta = np.arctan2(*vec)        # Obtain the angle of the vector.
     
-        dim = np.array([wall_thickness, np.linalg.norm(vec), wall_height])  # Obtain the dimension of the wall.
-        pos = [[avg[0], avg[1], theta]]                                     # Describe the position of the wall with average position and angle.
-        self.env.add_shapes(shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos)   # Draw the wall as a geometrical box.
+        dim = np.array([WIDTH, np.linalg.norm(vec), HEIGHT])    # Obtain the dimension of the wall.
+        pos = [[avg[0], avg[1], theta]]                         # Describe the position of the wall with average position and angle.
+        self.Obstacles.walls.append({'x': pos[0][0], 'y': pos[0][1], 'theta': pos[0][2], 'width': dim[0], 'length': dim[1], 'height': dim[2]}) # Add new obstacle pos to list
+        self.env.add_shapes(shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos)
 
     def generate_doors(self):
-        door_bathroom = Door(self.env, pos=self.points['W']-self.offset, is_open=False, theta=0, is_flipped=True)
+        # Add all door and door knobs to pos list and convert all lists to np arrays
+        door_bathroom = Door(self.env, pos=self.points['W']-self.offset, is_open=True, theta=0, is_flipped=True)
         door_bathroom.draw_door()
-        door_outdoor = Door(self.env, pos=self.points['E']-self.offset, is_open=False, theta=np.pi)
-        door_outdoor.draw_door()
-        door_bedroom1 = Door(self.env, pos=self.points['P']-self.offset, is_open=False, theta=0)
-        door_bedroom1.draw_door()
-        door_bedroom2 = Door(self.env, pos=self.points['P']-self.offset, is_open=False, theta=0.5*np.pi, is_flipped=True)
-        door_bedroom2.draw_door()
-        door_kitchen = Door(self.env, pos=self.points['I']-self.offset, is_open=False, theta=-0.5*np.pi, is_flipped=True)
-        door_kitchen.draw_door()
+        self.Obstacles.doors.append({'Bathroom door': {'x': door_bathroom.pos_door[0][0], 'y': door_bathroom.pos_door[0][1], 'theta': door_bathroom.pos_door[0][2], 
+                                        'width': door_bathroom.dim_door[0], 'length': door_bathroom.dim_door[1], 'height': door_bathroom.dim_door[2]},
+                                        'Bathroom doorknob': {'x': door_bathroom.pos_knob[0][0], 'y': door_bathroom.pos_knob[0][1], 'theta': door_bathroom.pos_knob[0][2], 
+                                        'width': door_bathroom.dim_knob[0], 'length': door_bathroom.dim_knob[1], 'height': door_bathroom.dim_knob[2]}})
 
+        door_outdoor = Door(self.env, pos=self.points['E']-self.offset, is_open=True, theta=np.pi)
+        door_outdoor.draw_door()
+        self.Obstacles.doors.append({'Out door': {'x': door_outdoor.pos_door[0][0], 'y': door_outdoor.pos_door[0][1], 'theta': door_outdoor.pos_door[0][2], 
+                                        'width': door_outdoor.dim_door[0], 'length': door_outdoor.dim_door[1], 'height': door_outdoor.dim_door[2]},
+                                        'Out doorknob': {'x': door_outdoor.pos_knob[0][0], 'y': door_outdoor.pos_knob[0][1], 'theta': door_outdoor.pos_knob[0][2], 
+                                        'width': door_outdoor.dim_knob[0], 'length': door_outdoor.dim_knob[1], 'height': door_outdoor.dim_knob[2]}})
+
+        door_bedroom1 = Door(self.env, pos=self.points['P']-self.offset, is_open=True, theta=0)
+        door_bedroom1.draw_door()
+        self.Obstacles.doors.append({'Bedroom1 door': {'x': door_bedroom1.pos_door[0][0], 'y': door_bedroom1.pos_door[0][1], 'theta': door_bedroom1.pos_door[0][2], 
+                                        'width': door_bedroom1.dim_door[0], 'length': door_bedroom1.dim_door[1], 'height': door_bedroom1.dim_door[2]},
+                                        'Bedroom1 doorknob': {'x': door_bedroom1.pos_knob[0][0], 'y': door_bedroom1.pos_knob[0][1], 'theta': door_bedroom1.pos_knob[0][2], 
+                                        'width': door_bedroom1.dim_knob[0], 'length': door_bedroom1.dim_knob[1], 'height': door_bedroom1.dim_knob[2]}})
+
+        door_bedroom2 = Door(self.env, pos=self.points['P']-self.offset, is_open=True, theta=0.5*np.pi, is_flipped=True)
+        door_bedroom2.draw_door()
+        self.Obstacles.doors.append({'Bedroom2 door': {'x': door_bedroom2.pos_door[0][0], 'y': door_bedroom2.pos_door[0][1], 'theta': door_bedroom2.pos_door[0][2], 
+                                        'width': door_bedroom2.dim_door[0], 'length': door_bedroom2.dim_door[1], 'height': door_bedroom2.dim_door[2]},
+                                        'Bedroom2 doorknob': {'x': door_bedroom2.pos_knob[0][0], 'y': door_bedroom2.pos_knob[0][1], 'theta': door_bedroom2.pos_knob[0][2], 
+                                        'width': door_bedroom2.dim_knob[0], 'length': door_bedroom2.dim_knob[1], 'height': door_bedroom2.dim_knob[2]}})
+
+        door_kitchen = Door(self.env, pos=self.points['I']-self.offset, is_open=True, theta=-0.5*np.pi, is_flipped=True)
+        door_kitchen.draw_door()
+        self.Obstacles.doors.append({'Kitchen door': {'x': door_kitchen.pos_door[0][0], 'y': door_kitchen.pos_door[0][1], 'theta': door_kitchen.pos_door[0][2], 
+                                        'width': door_kitchen.dim_door[0], 'length': door_kitchen.dim_door[1], 'height': door_kitchen.dim_door[2]},
+                                        'Kitchen doorknob': {'x': door_kitchen.pos_knob[0][0], 'y': door_kitchen.pos_knob[0][1], 'theta': door_kitchen.pos_knob[0][2], 
+                                        'width': door_kitchen.dim_knob[0], 'length': door_kitchen.dim_knob[1], 'height': door_kitchen.dim_knob[2]}})
+        self.Obstacles.doors = np.array(self.Obstacles.doors)
 
