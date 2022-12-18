@@ -15,7 +15,7 @@ class Model(HolonomicRobot):
                                             # 4/6 - arm joint 2
                                             # 5/8 - arm joint 3
                                             # 6/9 - arm joint 4
-
+        #self.states = {'x': 0, 'y': 0, 'theta': 0, 'v_x': 0, 'v_y': 0, 'v_r': 0}
         #search for urdf in package if not found in cwd
         if not os.path.exists(urdf):
             root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -52,3 +52,33 @@ class Model(HolonomicRobot):
         if not isinstance(vel, np.ndarray) or not vel.size == self.n():
             vel = np.zeros(self.n())
         return pos, vel
+
+    def move_to_waypoint(self, waypoint: np.ndarray, obs: dict) -> None:
+        """
+            Move the robot to the target waypoint, in Euclidean direction (i.e. straight line)
+            Waypoint should be a 2-elements vector containing the x and y coordinates of the point
+        """
+        # Get current x and y positions
+        x = obs['robot_0']['joint_state']['position'][0]
+        y = obs['robot_0']['joint_state']['position'][1]
+        
+        # Approximate to zero
+        if x < 1e-4:
+            x = 0.0
+        
+        if y < 1e-4:
+            y = 0.0
+
+        vel = np.zeros(self._n) # action
+
+        targetVector = np.array([waypoint[0] - x, waypoint[1] - y])
+
+        # Prevent dividing by zero
+        if targetVector[0] == 0.0:
+            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[1] - y])))
+        elif targetVector[1] == 0.0:
+            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x])))
+        else:
+            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x, waypoint[1] - y])))
+        
+        return vel, np.allclose(np.array([x, y]), waypoint, rtol=1e-03, atol=1e-03)
