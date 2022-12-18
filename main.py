@@ -91,10 +91,9 @@ if __name__ == "__main__":
             #     action[-1] = 0.01
             #     action[-2] = 0.01
             ob, _, _, _ = env.step(action)
-
+            
             history.append(ob)
             action, done = robots[0].move_to_waypoint(waypoint, ob)
-            
             # Once target position is reached, simulation will stop. 
             if done:
                 break

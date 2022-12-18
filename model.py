@@ -61,14 +61,14 @@ class Model(HolonomicRobot):
         # Get current x and y positions
         x = obs['robot_0']['joint_state']['position'][0]
         y = obs['robot_0']['joint_state']['position'][1]
-        
+
         # Approximate to zero
-        if x < 1e-4:
+        if np.abs(x) < 1e-04:
             x = 0.0
         
-        if y < 1e-4:
+        if np.abs(y) < 1e-04:
             y = 0.0
-
+        
         vel = np.zeros(self._n) # action
 
         targetVector = np.array([waypoint[0] - x, waypoint[1] - y])
@@ -80,5 +80,6 @@ class Model(HolonomicRobot):
             vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x])))
         else:
             vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x, waypoint[1] - y])))
-        
+        self.update_state()
+        print(self.state)
         return vel, np.allclose(np.array([x, y]), waypoint, rtol=1e-03, atol=1e-03)
