@@ -53,7 +53,7 @@ class Model(HolonomicRobot):
             vel = np.zeros(self.n())
         return pos, vel
 
-    def move_to_waypoint(self, waypoint: np.ndarray, obs: dict) -> None:
+    def move_to_waypoint(self, waypoint: np.ndarray, obs: dict, ztol: float, rtol: float, atol: float) -> None:
         """
             Move the robot to the target waypoint, in Euclidean direction (i.e. straight line)
             Waypoint should be a 2-elements vector containing the x and y coordinates of the point
@@ -63,10 +63,10 @@ class Model(HolonomicRobot):
         y = obs['robot_0']['joint_state']['position'][1]
 
         # Approximate to zero
-        if np.abs(x) < 1e-04:
+        if np.abs(x) < ztol:
             x = 0.0
         
-        if np.abs(y) < 1e-04:
+        if np.abs(y) < ztol:
             y = 0.0
         
         vel = np.zeros(self._n) # action
@@ -82,4 +82,4 @@ class Model(HolonomicRobot):
             vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x, waypoint[1] - y])))
         self.update_state()
 
-        return vel, np.allclose(np.array([x, y]), waypoint, rtol=1e-03, atol=1e-03)
+        return vel, np.allclose(np.array([x, y]), waypoint, rtol=rtol, atol=atol)
