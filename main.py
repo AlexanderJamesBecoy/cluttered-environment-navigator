@@ -4,6 +4,13 @@ from model import Model
 from house import House
 import warnings
 
+R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
+
+#Dimension of robot base, found in mobilePandaWithGripper.urdf
+R_RADIUS = 0.2
+R_HEIGHT = 0.3
+
+
 def generate_room(env):
     # # Dimensions
     dim_wall_3 = np.array([0.3,3.0,0.5]) # three-meter long wall
@@ -46,7 +53,7 @@ if __name__ == "__main__":
     with warnings.catch_warnings():
         warnings.filterwarnings(warning_flag)
         robots = [Model(),]
-
+        robots[0]._urdf.center
         env = gym.make(
             "urdf-env-v0",
             dt=0.01, robots=robots, render=True
@@ -57,19 +64,26 @@ if __name__ == "__main__":
 
         ob = env.reset() # pos=...
         # generate_room(env)
-
-        house = House(env)
+        robot_dim = np.array([R_HEIGHT, R_RADIUS])
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE)
         # start_pos = np.array([0.0, 1.0])
         # end_pos = np.array([1.0, 1.0])
         # house.add_wall(start_pos, end_pos)
         house.generate_walls()
         house.generate_doors()
 
+        # Generate obstacle constraints
+        left, right, low, up = house.Obstacles.generateConstraintsCylinder()
+        print(left.shape, right.shape, low.shape, up.shape)
+
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")
         history = []
 
-        for i in range(1000):
+        # Target position of the robot
+        waypoint = np.array([0, -2])        
+
+        while(1):
             # if (int(i / 100)) % 2 == 0:
             #     action[-1] = -0.01
             #     action[-2] = -0.01
@@ -77,6 +91,12 @@ if __name__ == "__main__":
             #     action[-1] = 0.01
             #     action[-2] = 0.01
             ob, _, _, _ = env.step(action)
+            
             history.append(ob)
+            action, done = robots[0].move_to_waypoint(waypoint, ob, 1e-03, 1e-02, 1e-02)
+            # Once target position is reached, simulation will stop. 
+            if done:
+                break
+
         
         env.close()
