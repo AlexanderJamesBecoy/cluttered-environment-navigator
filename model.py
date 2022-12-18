@@ -81,5 +81,5 @@ class Model(HolonomicRobot):
         else:
             vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x, waypoint[1] - y])))
         self.update_state()
-        print(self.state)
+
         return vel, np.allclose(np.array([x, y]), waypoint, rtol=1e-03, atol=1e-03)
