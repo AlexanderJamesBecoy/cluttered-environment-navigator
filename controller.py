@@ -2,36 +2,87 @@ import numpy as np
 import cvxpy as cp
 from model import Model
 
+# weight_tracking_default = np.eye(10)
+# weight_tracking_default[0:2, :] *= 5.0
+# weight_tracking_default[2, :] *= 2.0
+# weight_tracking_default[3:, :] *= 0.7
+# weight_input_default = np.eye(10)
+# weight_tracking_default[0:3, :] *= 0.05
+# weight_tracking_default[3:, :] *= 5.0
+# weight_terminal_default = weight_tracking_default
+
+weight_tracking_default_base = 5.0
+weight_tracking_default_theta = 2.0
+weight_tracking_default_arm = 0.7
+weight_input_default_base = 0.05
+weight_input_default_theta = 0.05
+weight_input_default_arm = 5.02
+weight_terminal_default_base = 5.0
+weight_terminal_default_theta = 2.0
+weight_terminal_default_arm = 0.7
+
+
+
 class MPController:
-    def __init__(self, model: Model, weight_tracking: np.ndarray, weight_input: np.ndarray, weight_terminal: np.ndarray,
-    upper_limit_state: float, lower_limit_state: float, upper_limit_input: float, lower_limit_input: float, 
-    dt: float = 0.001, N: int = 5):
+    def __init__(self, model: Model, weight_tracking_base: float = weight_tracking_default_base, 
+    weight_tracking_theta: float = weight_tracking_default_theta, 
+    weight_tracking_arm: float = weight_tracking_default_arm,
+    weight_input_base: float = weight_input_default_base,
+    weight_input_theta: float = weight_input_default_theta, 
+    weight_input_arm: float = weight_input_default_arm,
+    weight_terminal_base: float = weight_terminal_default_base,
+    weight_terminal_theta: float = weight_terminal_default_theta,
+    weight_terminal_arm: float = weight_terminal_default_arm,
+    dt: float = 0.01, N: int = 5):
 
         self.model = model # Model of the robot
-        self.dof = len(self.model.dofs) # Number of dof of the robot
-        self.weight_tracking = weight_tracking # Weight matrix of the error in the cost function
-        self.weight_input = weight_input # Weight matrix of the control input in the cost function
-        self.weight_terminal = weight_terminal # # Weight matrix of the terminal error in the cost function
+        self.dofs = self.model._dofs # Number of dof of the robot
+        self.weight_tracking = np.eye(len(self.dofs)) # Weight matrix of the error in the cost function
+        self.weight_input = np.eye(len(self.dofs)) # Weight matrix of the control input in the cost function
+        self.weight_terminal = np.eye(len(self.dofs)) # Weight matrix of the terminal error in the cost function
+
+        # Assignment of the correct weights
+        self.weight_tracking[0:2, :] = weight_tracking_base * self.weight_tracking[0:2, :]
+        self.weight_tracking[2, :] = weight_tracking_theta * self.weight_tracking[2, :]
+        self.weight_tracking[3:, :] = weight_tracking_arm * self.weight_tracking[3:, :]
+        self.weight_input[0:2, :] = weight_input_base * self.weight_input[0:2, :]
+        self.weight_input[2, :] = weight_input_theta * self.weight_input[2, :]
+        self.weight_input[3:, :] = weight_input_arm * self.weight_input[3:, :]
+        self.weight_terminal[0:2, :] = weight_terminal_base * self.weight_terminal[0:2, :]
+        self.weight_terminal[2, :] = weight_terminal_theta * self.weight_terminal[2, :]
+        self.weight_terminal[3:, :] = weight_terminal_arm * self.weight_terminal[3:, :]
+
         self.dt = dt # Time step of each iteration
         self.N = N # Prediction horizon
-        self.upper_limit_state = upper_limit_state
-        self.lower_limit_state = lower_limit_state
-        self.upper_limit_input = upper_limit_input
-        self.lower_limit_input = lower_limit_input
+
+        # Limits on states and input variables
+        self.lower_limit_state = self.model.get_observation_space()['joint_state']['position'].low[self.dofs]
+        self.upper_limit_state = self.model.get_observation_space()['joint_state']['position'].high[self.dofs]
+        self.lower_limit_input = self.model.get_observation_space()['joint_state']['velocity'].low[self.dofs]
+        self.upper_limit_input = self.model.get_observation_space()['joint_state']['velocity'].high[self.dofs]
+
+
+        # self.weight_tracking = weight_tracking # Weight matrix of the error in the cost function
+        # self.weight_input = weight_input # Weight matrix of the control input in the cost function
+        # self.weight_terminal = weight_terminal # Weight matrix of the terminal error in the cost function
+        # self.lower_limit_state = lower_limit_state
+        # self.upper_limit_state = upper_limit_state
+        # self.lower_limit_input = lower_limit_input
+        # self.upper_limit_input = upper_limit_input
 
     def FHOCP(self, state0: np.ndarray, goal: np.ndarray): # Finite Horizon Optimal Control Problem
 
-        self.x = cp.variables((self.dof, self.N + 1)) # Optimization varibles (states) over an horizon N
-        self.u = cp.variables((self.dof, self.N)) # Optimization variables (inputs) over an horizon N
+        self.x = cp.Variable((len(self.dofs), self.N + 1)) # Optimization varibles (states) over an horizon N
+        self.u = cp.Variable((len(self.dofs), self.N)) # Optimization variables (inputs) over an horizon N
         self.cost = 0. # Initialization of the cost function
         self.constraints = [] # Initialization of the constraints
         self.add_objective_function(state0, goal)
-        self.add_constraints(state0, goal)
+        self.add_constraints(state0)
 
         problem = cp.Problem(cp.Minimize(self.cost), self.constraints)
         problem.solve(solver=cp.OSQP)
 
-        return 
+        return self.u[:, 0].value
 
     def add_objective_function(self, state0: np.ndarray, goal: np.ndarray):
 
@@ -42,8 +93,18 @@ class MPController:
 
     def add_constraints(self, state0):
 
-        self.constraints += [self.z[:, 0] == state0] # Initial state constraint
+        self.constraints += [self.x[:, 0] == state0] # Initial state constraint
         for k in range(self.N): # Iterate over all the steps of the prediction horizon
-            self.constraints += [self.lower_limit_state <= self.x[:, k] <= self.upper_limit_state]
-            self.constraints += [self.lower_limit_input <= self.u[:, k] <= self.upper_limit_input]
-        self.constraints += [self.lower_limit_state <= self.x[:, self.N] <= self.upper_limit_state]
+            self.constraints += [self.lower_limit_state <= self.x[:, k]]
+            self.constraints += [self.x[:, k] <= self.upper_limit_state]
+            self.constraints += [self.lower_limit_input <= self.u[:, k]]
+            self.constraints += [self.u[:, k] <= self.upper_limit_input]
+
+        self.constraints += [self.lower_limit_state <= self.x[:, self.N]]
+        self.constraints += [self.x[:, self.N] <= self.upper_limit_state]
+
+        # Robot model constraints
+
+        for k in range(self.N):
+            self.constraints += [self.x[:, k+1] == self.x[:, k] + self.dt * self.u[:, k]]
+
