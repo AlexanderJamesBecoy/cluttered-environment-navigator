@@ -52,7 +52,9 @@ if __name__ == "__main__":
     warning_flag = "default" if show_warnings else "ignore"
     with warnings.catch_warnings():
         warnings.filterwarnings(warning_flag)
-        robots = [Model(),]
+
+        robot_dim = np.array([R_HEIGHT, R_RADIUS])
+        robots = [Model(dim=robot_dim),]
         robots[0]._urdf.center
         env = gym.make(
             "urdf-env-v0",
@@ -63,12 +65,7 @@ if __name__ == "__main__":
         action[2] = 0.5
 
         ob = env.reset() # pos=...
-        # generate_room(env)
-        robot_dim = np.array([R_HEIGHT, R_RADIUS])
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
-        # start_pos = np.array([0.0, 1.0])
-        # end_pos = np.array([1.0, 1.0])
-        # house.add_wall(start_pos, end_pos)
         house.generate_walls()
         house.generate_doors()
 
