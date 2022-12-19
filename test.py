@@ -78,7 +78,7 @@ if __name__ == "__main__":
         history = []
 
         # Target position of the robot
-        goal = np.array([0, -3, 3.14, -3.14, 0, 0, 0])
+        goal = np.array([0, -3, 3.14, 3.14/2, 3.14/2, 3.14/2, 0])
         MPC = MPController(robots[0])
 
         while(1):
