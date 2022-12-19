@@ -15,13 +15,14 @@ def forward_kinematics_manipulator(q: np.ndarray) -> dict:
             `orientation`: np.ndarray containing the orientation in quaternions (qx, qy, qz, qw)
     """
 
-    # d1 =
-    # d3 = 
-    # d5 = 
-    # d7 = 
-    # a3 =
-    # a4 =
-    # a6 =
+    # Denavit-Hartenberg parameters
+    d1 = 0.333
+    d3 = 0.316
+    d5 = 0.384
+    d7 = 0.107
+    a3 = 0.0825
+    a4 = 0.0825
+    a6 = 0.088
     q1, q2, q3, q4, q5, q6, q7 = q[0], q[1], q[2], q[3], q[4], q[5], q[6]
 
     r11 = cos(q7) * (sin(q6) * (sin(q4) * (sin(q1) * sin(q3) - cos(q1) * cos(q2) *\
