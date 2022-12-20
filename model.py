@@ -60,42 +60,22 @@ class Model(HolonomicRobot):
             Returns:
                 1x7 velocity vector and variable to denote whether the point has been reached or not
         """
-        #TODO: find a better way to compute direction to move to
         # Get current x and y positions
         x = obs['joint_state']['position'][0]
         y = obs['joint_state']['position'][1]
-
-        # Approximate to zero if position is close to it
-        if np.abs(x) < ztol:
-            x = 0.0
-        
-        if np.abs(y) < ztol:
-            y = 0.0
         
         vel = np.zeros(self._n) # action
-        #print(np.array([waypoint[0] - x, waypoint[1] - y]))
         targetVector = np.array([waypoint[0] - x, waypoint[1] - y])
-        
-        #print("targetVector: {}".format((np.abs(targetVector[0])) == 0.0 and (np.abs(targetVector[1]) == 0.0)))
-        # Prevent dividing by zero
-        if np.abs(targetVector[0]) == 0.0:
-            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(targetVector[1]))
-        elif np.abs(targetVector[1]) == 0.0:
-            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(targetVector[0]))
-        elif (np.abs(targetVector[0])) == 0.0 and (np.abs(targetVector[1]) == 0.0):
-            self.update_state()
-            return vel, True
-        else:
-            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(targetVector[:]))
-        self.update_state()
+
+        vel[:2] = np.array(targetVector/np.linalg.norm(targetVector))
 
         # Check if current robot position is within tolerated range
         return vel, np.allclose(np.array([x, y]), waypoint, rtol=rtol, atol=atol)
     
-    def follow_path(self, env, waypoints: np.ndarray, iter: int=1000, step: int=5, ztol=1e-03, rtol=1e-02, atol=1e-02) -> None:
+    def follow_path(self, env, waypoints: np.ndarray, iter: int=1000, ztol=1e-03, rtol=1e-02, atol=1e-02) -> None:
         """
             Iterate points over waypoints and move the robot to each one sequentially.
-            Maximum iteration set by 'iter', and step size set by 'step', which determines how often new actions are computed.
+            Maximum iteration set by 'iter'.
 
             Program exits when either maximum iteration has been reached or all waypoints visited.
         """
@@ -104,13 +84,8 @@ class Model(HolonomicRobot):
             done = False
             i = 0
             while (not done and i < iter):
-                if (i%step == 0):
-                    action, done = self.set_waypoint_action(point, self.state, ztol=ztol, rtol=rtol, atol=atol)
-                    if done:
-                        break
-                    env.step(action)
-
+                action, done = self.set_waypoint_action(point, self.state, ztol=ztol, rtol=rtol, atol=atol)
+                env.step(action)
                 self.update_state()
-
                 i += 1
 
