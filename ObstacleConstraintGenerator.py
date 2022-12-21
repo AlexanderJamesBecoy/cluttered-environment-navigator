@@ -8,6 +8,7 @@ class ObstacleConstraintsGenerator:
     def __init__(self, robot_dim: list, scale: float) -> None:
         self.walls = []
         self.doors = []
+        self.knobs = []
         self.robot_dim = robot_dim*scale # to be used to construct constraints later
     
     def generateConstraintsCylinder(self) -> np.ndarray:
@@ -41,6 +42,18 @@ class ObstacleConstraintsGenerator:
                 lower_constraints.append(wall['y'] - wall['width']/2)
                 upper_constraints.append(wall['y'] + wall['width']/2)
 
-            # TODO: add doors and maybe knobs
-        
+            
+        for door in self.doors:
+            if np.abs(door['theta']) != np.pi/2:
+                left_constraints.append(door['x'] - door['width']/2)
+                right_constraints.append(door['x'] + door['width']/2)
+                lower_constraints.append(door['y'] - door['length']/2)
+                upper_constraints.append(door['y'] + door['length']/2)
+            else:
+                left_constraints.append(door['x'] - door['length']/2)
+                right_constraints.append(door['x'] + door['length']/2)
+                lower_constraints.append(door['y'] - door['width']/2)
+                upper_constraints.append(door['y'] + door['width']/2)
+
+
         return np.array(left_constraints), np.array(right_constraints), np.array(lower_constraints), np.array(upper_constraints)

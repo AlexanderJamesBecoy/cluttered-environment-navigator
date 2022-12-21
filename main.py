@@ -79,21 +79,9 @@ if __name__ == "__main__":
 
         # Target position of the robot
         waypoint = np.array([0, -2])        
+        waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
 
-        while(1):
-            # if (int(i / 100)) % 2 == 0:
-            #     action[-1] = -0.01
-            #     action[-2] = -0.01
-            # else:
-            #     action[-1] = 0.01
-            #     action[-2] = 0.01
-            ob, _, _, _ = env.step(action)
-            
-            history.append(ob)
-            action, done = robots[0].move_to_waypoint(waypoint, ob, 1e-03, 1e-02, 1e-02)
-            # Once target position is reached, simulation will stop. 
-            if done:
-                break
+        # Follow a path set by waypoints
+        robots[0].follow_path(env=env, waypoints=waypoints)
 
-        
         env.close()
