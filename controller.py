@@ -14,7 +14,6 @@ weight_terminal_default_theta = 2.0
 weight_terminal_default_arm = 0.7
 
 
-
 class MPController:
     """
     This class implement a MPC for a mobile manipulator. The goal is to follow the desired path as precisely as
