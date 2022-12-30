@@ -1,6 +1,6 @@
 import numpy as np
 from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
-# from urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
+#from urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
 import sys
 # sys.path.insert(1, '../gym_envs_urdf')
@@ -55,33 +55,39 @@ class Model(HolonomicRobot):
             vel = np.zeros(self.n())
         return pos, vel
 
-    def move_to_waypoint(self, waypoint: np.ndarray, obs: dict, ztol: float, rtol: float, atol: float) -> None:
+    def set_waypoint_action(self, waypoint: np.ndarray, obs: dict, ztol: float, rtol: float, atol: float) -> None:
         """
-            Move the robot to the target waypoint, in Euclidean direction (i.e. straight line)
-            Waypoint should be a 2-elements vector containing the x and y coordinates of the point
+            Set the action necessary to reach the target waypoint.
+            
+            Returns:
+                1x7 velocity vector and variable to denote whether the point has been reached or not
         """
         # Get current x and y positions
-        x = obs['robot_0']['joint_state']['position'][0]
-        y = obs['robot_0']['joint_state']['position'][1]
-
-        # Approximate to zero
-        if np.abs(x) < ztol:
-            x = 0.0
-        
-        if np.abs(y) < ztol:
-            y = 0.0
+        x = obs['joint_state']['position'][0]
+        y = obs['joint_state']['position'][1]
         
         vel = np.zeros(self._n) # action
-
         targetVector = np.array([waypoint[0] - x, waypoint[1] - y])
 
-        # Prevent dividing by zero
-        if targetVector[0] == 0.0:
-            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[1] - y])))
-        elif targetVector[1] == 0.0:
-            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x])))
-        else:
-            vel[:2] = np.array((waypoint - np.array([x ,y]))/np.abs(np.array([waypoint[0] - x, waypoint[1] - y])))
-        self.update_state()
+        vel[:2] = np.array(targetVector/np.linalg.norm(targetVector))
 
+        # Check if current robot position is within tolerated range
         return vel, np.allclose(np.array([x, y]), waypoint, rtol=rtol, atol=atol)
+    
+    def follow_path(self, env, waypoints: np.ndarray, iter: int=1000, ztol=1e-03, rtol=1e-02, atol=1e-02) -> None:
+        """
+            Iterate points over waypoints and move the robot to each one sequentially.
+            Maximum iteration set by 'iter'.
+
+            Program exits when either maximum iteration has been reached or all waypoints visited.
+        """
+
+        for point in waypoints:
+            done = False
+            i = 0
+            while (not done and i < iter):
+                action, done = self.set_waypoint_action(point, self.state, ztol=ztol, rtol=rtol, atol=atol)
+                env.step(action)
+                self.update_state()
+                i += 1
+
