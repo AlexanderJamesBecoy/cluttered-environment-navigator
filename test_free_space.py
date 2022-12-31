@@ -2,13 +2,23 @@ import numpy as np
 import qpsolvers
 from scipy import sparse
 from free_space import FreeSpace
+import cvxpy as cp
 
-x = np.array([[1, 2], [3, 4]])
+print("Solvers cvxpy: ", cp.installed_solvers())
 
-for i in x:
+
+x = np.array([[1, 2], [3, 4], [5, 6]])
+
+for i in x[1:]:
     print(i)
 
 print(x - np.array([1, 2]))
+
+
+y = np.array([1, 2, 3])
+for a, b in zip(x, y):
+    print(a, b)
+
 
 # ----------------------------- QP -----------------------------
 P = np.zeros((9, 9))
@@ -47,4 +57,27 @@ x_opt = Cfree.clostest_point_on_obstacle(V)
 print("closest point = ", x_opt)
 a, b = Cfree.tangent_plane(x_opt)
 print("a = ", a, "\nb = ", b)
+
+
+# ----------------------------- full test 1 -----------------------------
+
+print("\n\n\n\n\n")
+
+ob1 = np.array([[-10, -10, 1], [-10, 10 , 1], [10, -10, 1], [10, 10, 1]]) # ceiling
+ob2 = np.array([[-10, -10, 0], [-10, 10 , 0], [10, -10, 0], [10, 10, 0]]) # floor
+
+ob3 = np.array([[-10, -10, 1], [-10, 10 , 1], [-10, -10, 0], [-10, 10 , 0]])# wall 1
+ob4 = np.array([[-10, -10, 1], [10, -10, 1], [-10, -10, 0], [10, -10, 0]]) # wall 2
+ob5 = np.array([[10, -10, 1], [10, 10, 1], [10, -10, 0], [10, 10, 0]]) # wall 3
+ob6 = np.array([[-10, 10 , 1], [10, 10, 1], [-10, 10 , 0], [10, 10, 0]]) # wall 4
+
+ob7 = np.array([[3, 3, 0], [0, 3, 0], [3, 5, 0], [3, 3, 0.5]])
+ob8 = np.array([[-5, -5, 0], [0, -5, 0], [0, -2, 0], [-5, -2, 0], [-5, -5, 0.8], [0, -5, 0.8], [0, -2, 0.8], [-5, -2, 0.8]])
+
+obstacles = [ob1, ob2, ob3, ob4, ob5, ob6, ob7, ob8]
+
+Cfree = FreeSpace(obstacles)
+A, b = Cfree.update_free_space(np.array([0, 0, 0]))
+print(A)
+print(b)
 

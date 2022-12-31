@@ -2,13 +2,15 @@ import numpy as np
 from casadi import *
 import qpsolvers
 from scipy import sparse
+import cvxpy as cp
 
 
 EPSILON_SPHERE = 0.1
 # SPACE_DIM = 2
 SPACE_DIM = 3
-MAX_ITER = 10
+MAX_ITER = 5
 TOLLERANCE = 0.02
+CHECK_TOLLERANCE = 0.01
 
 
 class Ellipsoid:
@@ -51,13 +53,13 @@ class FreeSpace:
         """
 
         self.ellipsoid = Ellipsoid(pos0, np.eye(SPACE_DIM)*EPSILON_SPHERE)
-        self.ostacles = obstacles
+        self.obstacles = obstacles
         self.A = []
         self.b = []
 
         pass
 
-    def update_free_space(self, pos0: np.ndarray = np.zeros(SPACE_DIM)):
+    def update_free_space(self, pos0) -> tuple:
 
         # re-initialize the ellipsoid to a ball and the hyperplanes
         self.ellipsoid = Ellipsoid(pos0, np.eye(SPACE_DIM)*EPSILON_SPHERE)
@@ -65,43 +67,51 @@ class FreeSpace:
         self.b = []
 
         # keep iterating the algorithm
-        for _ in range(MAX_ITER):
+        for i in range(MAX_ITER):
 
+            print("Iteration number: ", i+1, "/", MAX_ITER)
             # keep track of the previous determinant to check the tolerance on the relative change in ellipsoid volume
             det_C_prec = np.linalg.det(self.ellipsoid.C)
             self.separating_hyperplanes() # find hyperplanes that separates the obstacles from the ellipsoid
             self.inscribed_ellipsoid() # find the maximum volume ellipsoid inscribed in the hyperplanes
             det_C = np.linalg.det(self.ellipsoid.C)
             if ((det_C - det_C_prec) / det_C_prec) < TOLLERANCE: # check termination condition
+                print("Update succeeded!")
                 break
 
-        pass 
+        return self.A, self.b 
 
     def separating_hyperplanes(self):
 
         n_obs = len(self.obstacles)
         obs_excluded = []
         obs_remaining = list(range(0, n_obs))
+        self.A = []
+        self.b = []
 
         while len(obs_remaining) != 0:
 
             # find the closest obstacles to the ellipsoid
-            closest_obs = self.clostest_obstacle(self, obs_remaining)
+            print("Looking for closest obstacle...")
+            closest_obs = self.clostest_obstacle(obs_remaining)
             # find the closest point of the obstacle to the ellipsoid
-            x_closest = self.clostest_point_on_obstacle(self, closest_obs)
-            # find the hyperplane tangent the point that separates the obstacle from the ellipsoid
-            a_i, b_i = self.tangent_plane(self, x_closest)
+            print("Looking for closest point...")
+            x_closest = self.clostest_point_on_obstacle(closest_obs)
+            # find the hyperplane tangent to the point that separates the obstacle from the ellipsoid
+            print("Computing separating hyperplane...")
+            a_i, b_i = self.tangent_plane(x_closest)
             self.A.append(a_i)
             self.b.append(b_i)
 
             # check if the hyperplane found separes also other obstacles from the ellipsoid
             for obs_i in obs_remaining:
                 check = True
-                for vertex_j in self.ostacles[obs_i]:
-                    if a_i @ vertex_j < b_i:
+                for vertex_j in self.obstacles[obs_i]:
+                    if a_i @ vertex_j < (b_i - CHECK_TOLLERANCE):
                         check = False
 
                 if check:
+                    print("REMOVED")
                     obs_remaining.remove(obs_i)
                     obs_excluded.append(obs_i)
 
@@ -109,11 +119,50 @@ class FreeSpace:
 
     def inscribed_ellipsoid(self):
 
+        # Largest volume inner ellipsoid problem formulation:
+        # max               log det(C)
+        # subject to        ||C*ai|| + ai^T * d <= bi for all i
+        #                   C >> 0
+        print("Computing inscribed ellipsoid...")
+        C = cp.Variable((SPACE_DIM, SPACE_DIM), symmetric=True)
+        d = cp.Variable(SPACE_DIM)
+        objective = cp.Maximize(cp.log_det(C))
+        constraints = [C >> 0]
+        for ai, bi in zip(self.A, self.b):
+            constraints += [cp.norm(C @ ai) + ai @ d <= bi]
+        prob = cp.Problem(objective, constraints)
+        prob.solve()
+        print("Solution: ", C.value, d.value)
+
+        # Update the ellipsoid parameters
+        self.ellipsoid = Ellipsoid(d.value, C.value)
+
         pass
 
-    def clostest_obstacle(self, obs_remaining):
+    def clostest_obstacle(self, obs_remaining) -> np.ndarray:
 
-        pass
+        index_closest = obs_remaining[0]
+        min_dist = 100 # initialization of the maximum distance
+        for obs in obs_remaining:
+            # initialize the closest distance of the obstacle by considering the first vertex
+            dist_obs = self.calculate_min_dist(self.obstacles[obs][0])
+            for vertex_j in self.obstacles[obs][1:]:
+                dist = self.calculate_min_dist(vertex_j)
+                if dist < dist_obs:
+                    dist_obs = dist
+            
+            if dist_obs < min_dist:
+                min_dist = dist_obs
+                index_closest = obs
+        
+        return self.obstacles[index_closest]
+
+    def calculate_min_dist(self, point: np.ndarray) -> float:
+
+        # TODO: for now I considered only the distance from the center of the ellipsoid
+        min_dist = np.linalg.norm(self.ellipsoid.d - point)
+
+        return min_dist
 
     def clostest_point_on_obstacle(self, obstacle: np.ndarray) -> np.ndarray:
 
@@ -123,6 +172,7 @@ class FreeSpace:
         # Quadratic Programming formulation:
         # min           0.5 x*P*x + q*x
         # subject to    G*x <= h, A*x = b, lb <= x <= ub
+        # https://pypi.org/project/qpsolvers/
 
         num_var = SPACE_DIM + num_vertices # number of optimization variables
         P = P = np.zeros((num_var, num_var))
@@ -141,7 +191,7 @@ class FreeSpace:
 
         x_opt = qpsolvers.solve_qp(P, q, G, h, A, b, solver="osqp") # solve the problem
         x_opt = x_opt[0:SPACE_DIM] # select only the position of the closest point among the optimization variables
-        x_closest = self.ellipsoid.C @ x_opt + self.ellipsoid.d
+        x_closest = self.ellipsoid.C @ x_opt + self.ellipsoid.d # apply inverse transformation to ellipsoide space
 
         return x_closest
 
