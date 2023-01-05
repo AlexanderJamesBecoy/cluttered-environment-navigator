@@ -53,7 +53,7 @@ class Model(HolonomicRobot):
             vel = np.zeros(self.n())
         return pos, vel
 
-    def set_waypoint_action(self, waypoint: np.ndarray, obs: dict, ztol: float, rtol: float, atol: float) -> None:
+    def set_waypoint_action(self, house, waypoint: np.ndarray, obs: dict, ztol: float, rtol: float, atol: float) -> None:
         """
             Set the action necessary to reach the target waypoint.
             
@@ -63,7 +63,8 @@ class Model(HolonomicRobot):
         # Get current x and y positions
         x = obs['joint_state']['position'][0]
         y = obs['joint_state']['position'][1]
-        
+        left, right, lower, up = house.Obstacles.generateConstraintsCylinder([x, y])
+        print("Left: {}\nRight: {}\nLower: {}\nUp: {}\n".format(len(left), len(right), len(lower), len(up)))
         vel = np.zeros(self._n) # action
         targetVector = np.array([waypoint[0] - x, waypoint[1] - y])
 
@@ -72,7 +73,7 @@ class Model(HolonomicRobot):
         # Check if current robot position is within tolerated range
         return vel, np.allclose(np.array([x, y]), waypoint, rtol=rtol, atol=atol)
     
-    def follow_path(self, env, waypoints: np.ndarray, iter: int=1000, ztol=1e-03, rtol=1e-02, atol=1e-02) -> None:
+    def follow_path(self, env, house, waypoints: np.ndarray, iter: int=1000, ztol=1e-03, rtol=1e-02, atol=1e-02) -> None:
         """
             Iterate points over waypoints and move the robot to each one sequentially.
             Maximum iteration set by 'iter'.
@@ -84,7 +85,7 @@ class Model(HolonomicRobot):
             done = False
             i = 0
             while (not done and i < iter):
-                action, done = self.set_waypoint_action(point, self.state, ztol=ztol, rtol=rtol, atol=atol)
+                action, done = self.set_waypoint_action(house, point, self.state, ztol=ztol, rtol=rtol, atol=atol)
                 env.step(action)
                 self.update_state()
                 i += 1

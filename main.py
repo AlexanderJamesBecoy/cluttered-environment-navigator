@@ -72,10 +72,6 @@ if __name__ == "__main__":
         house.generate_walls()
         house.generate_doors()
 
-        # Generate obstacle constraints
-        left, right, low, up = house.Obstacles.generateConstraintsCylinder()
-        print(left.shape, right.shape, low.shape, up.shape)
-
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")
         history = []
@@ -85,6 +81,6 @@ if __name__ == "__main__":
         waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
 
         # Follow a path set by waypoints
-        robots[0].follow_path(env=env, waypoints=waypoints)
+        robots[0].follow_path(env=env, house=house, waypoints=waypoints)
 
         env.close()
