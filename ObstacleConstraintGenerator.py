@@ -26,14 +26,18 @@ class ObstacleConstraintsGenerator:
             robot_dim = [height, radius]
 
             returns:
-                5 ndarrays of dot products of robot position and normals of sides of the obstacles, and dot products of obstacle side positions and normals of sides of the obstacles.
-                The robot should then have these constraints:
-                    robot_norms[i] < constraints - radius
+                robot_norms: ndarray of dot products of normal vectors of the sides of the obstacles and robot positions
+                constraints: ndarray of dot products of normal vectors of the sides of the obstacles and position of the sides
+            
+            To apply the constraints, simply do:
+                robot_norms[i] < constraints[i]
+            
+            You can also include a radius to keep the robot some distance away from the walls like so:
+                robot_norms[i] < constraints[i] - offset
+            
+            The code checks which side the robot is on and activate the appropriate constraint at each time step.
         """
-        left_constraints = []
-        right_constraints = []
-        lower_constraints = []
-        upper_constraints = []
+        constraints = []
         robot_norms = []
         center = (0, 0)
         for wall in self.walls:
@@ -83,45 +87,45 @@ class ObstacleConstraintsGenerator:
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
                 if robot_pos[0] < left_point[0]: # left side of obstacle
                     robot_norms.append(left_norm@robot_pos[:2])
-                    left_constraints.append(left_norm@left_point)
+                    constraints.append(left_norm@left_point)
 
                     if robot_pos[1] < bot_point[1]:
                         robot_norms.append(bot_norm@robot_pos[:2])
-                        lower_constraints.append(bot_norm@bot_point)
+                        constraints.append(bot_norm@bot_point)
                     elif robot_pos[1] > top_point[1]:
                         robot_norms.append(top_norm@robot_pos[:2])
-                        upper_constraints.append(top_norm@top_point)
+                        constraints.append(top_norm@top_point)
                 elif robot_pos[0] > right_point[0]: # right side of obstacle
                     robot_norms.append(right_norm@robot_pos[:2])
-                    right_constraints.append(right_norm@right_point)
+                    constraints.append(right_norm@right_point)
 
                     if robot_pos[1] < bot_point[1]:
                         robot_norms.append(bot_norm@robot_pos[:2])
-                        lower_constraints.append(bot_norm@bot_point)
+                        constraints.append(bot_norm@bot_point)
                     elif robot_pos[1] > top_point[1]:
                         robot_norms.append(top_norm@robot_pos[:2])
-                        upper_constraints.append(top_norm@top_point)
+                        constraints.append(top_norm@top_point)
                 elif robot_pos[1] < bot_point[1]: # bottom side of obstacle
                     robot_norms.append(bot_norm@robot_pos[:2])
-                    lower_constraints.append(bot_norm@bot_point)
+                    constraints.append(bot_norm@bot_point)
 
                     if robot_pos[0] < left_point[0]:
                         robot_norms.append(left_norm@robot_pos[:2])
-                        left_constraints.append(left_norm@left_point)
+                        constraints.append(left_norm@left_point)
                     elif robot_pos[0] > right_point[0]:
                         robot_norms.append(right_norm@robot_pos[:2])
-                        right_constraints.append(right_norm@right_point)
+                        constraints.append(right_norm@right_point)
                 
                 elif robot_pos[1] > top_point[1]:
                     robot_norms.append(top_norm@robot_pos[:2])
-                    upper_constraints.append(top_norm@top_point)
+                    constraints.append(top_norm@top_point)
 
                     if robot_pos[0] < left_point[0]:
                         robot_norms.append(left_norm@robot_pos[:2])
-                        left_constraints.append(left_norm@left_point)
+                        constraints.append(left_norm@left_point)
                     elif robot_pos[0] > right_point[0]:
                         robot_norms.append(right_norm@robot_pos[:2])
-                        right_constraints.append(right_norm@right_point)
+                        constraints.append(right_norm@right_point)
 
         for door in self.doors:
             # Set center of the obstacle
@@ -170,46 +174,46 @@ class ObstacleConstraintsGenerator:
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
                 if robot_pos[0] < left_point[0]: # left side of obstacle
                     robot_norms.append(left_norm@robot_pos[:2])
-                    left_constraints.append(left_norm@left_point)
+                    constraints.append(left_norm@left_point)
 
                     if robot_pos[1] < bot_point[1]:
                         robot_norms.append(bot_norm@robot_pos[:2])
-                        lower_constraints.append(bot_norm@bot_point)
+                        constraints.append(bot_norm@bot_point)
                     elif robot_pos[1] > top_point[1]:
                         robot_norms.append(top_norm@robot_pos[:2])
-                        upper_constraints.append(top_norm@top_point)
+                        constraints.append(top_norm@top_point)
                 elif robot_pos[0] > right_point[0]: # right side of obstacle
                     robot_norms.append(right_norm@robot_pos[:2])
-                    right_constraints.append(right_norm@right_point)
+                    constraints.append(right_norm@right_point)
 
                     if robot_pos[1] < bot_point[1]:
                         robot_norms.append(bot_norm@robot_pos[:2])
-                        lower_constraints.append(bot_norm@bot_point)
+                        constraints.append(bot_norm@bot_point)
                     elif robot_pos[1] > top_point[1]:
                         robot_norms.append(top_norm@robot_pos[:2])
-                        upper_constraints.append(top_norm@top_point)
+                        constraints.append(top_norm@top_point)
                 elif robot_pos[1] < bot_point[1]: # bottom side of obstacle
                     robot_norms.append(bot_norm@robot_pos[:2])
-                    lower_constraints.append(bot_norm@bot_point)
+                    constraints.append(bot_norm@bot_point)
 
                     if robot_pos[0] < left_point[0]:
                         robot_norms.append(left_norm@robot_pos[:2])
-                        left_constraints.append(left_norm@left_point)
+                        constraints.append(left_norm@left_point)
                     elif robot_pos[0] > right_point[0]:
                         robot_norms.append(right_norm@robot_pos[:2])
-                        right_constraints.append(right_norm@right_point)
+                        constraints.append(right_norm@right_point)
                 
                 elif robot_pos[1] > top_point[1]:
                     robot_norms.append(top_norm@robot_pos[:2])
-                    upper_constraints.append(top_norm@top_point)
+                    constraints.append(top_norm@top_point)
 
                     if robot_pos[0] < left_point[0]:
                         robot_norms.append(left_norm@robot_pos[:2])
-                        left_constraints.append(left_norm@left_point)
+                        constraints.append(left_norm@left_point)
                     elif robot_pos[0] > right_point[0]:
                         robot_norms.append(right_norm@robot_pos[:2])
-                        right_constraints.append(right_norm@right_point)
+                        constraints.append(right_norm@right_point)
 
 
-        return np.array(robot_norms), np.array(left_constraints), np.array(right_constraints), np.array(lower_constraints), np.array(upper_constraints)
+        return np.array(robot_norms), np.array(constraints)
                 
