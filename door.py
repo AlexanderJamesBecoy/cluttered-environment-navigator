@@ -4,13 +4,17 @@ from knob import Knob
 # from MotionPlanningEnv.cubeObstacle import CubeObstacle
 
 class Door:
-#  This class contains the useful information describing a door. It also contains the goal object `Knob`
-# for which our mobile manipulator tries to reach.
+    """
+    This class contains the useful information describing a door. It also contains the goal object `Knob`
+    for which our mobile manipulator tries to reach.
+    """
     
     def __init__(self, env, pos, theta, is_flipped=False, is_open=False, scale=1.0):
-    # Initialize an object of this class. It requires the pointer to the gym environment `env`, the orientation of the door `theta`.
-    # Booleans describing whether the door is mirrored `is_flipped`, and whether the door is open `is_open` are set to False by default.
-
+        """
+        Initialize an object of this class. It requires the pointer to the gym environment `env`, the orientation of the door `theta`.
+        Booleans describing whether the door is mirrored `is_flipped`, and whether the door is open `is_open` are set to False by default.
+        """
+        
         self.env = env
         self.pos = pos
         self.theta = theta
@@ -30,7 +34,10 @@ class Door:
         knobs = []  # List of door knob objects.
     
     def draw_door(self):
-    # This function draws the door into gym `env`. No further passing of arguments required.
+        """
+        Draw a door into gym `env`. No further passing of arguments required.
+        """
+
         offset_x = 0.5*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
         offset_y = 0.5*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
 

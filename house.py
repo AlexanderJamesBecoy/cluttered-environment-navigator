@@ -12,12 +12,14 @@ WIDTH = 0.3
 SCALE = 1.3
 
 class House:
-# This class contains all the useful, but approximated, information that describes a house for which a mobile manipulator
-# will explore. It will contain the goal objects which are the door knobs that is our mobile manipulator will try to reach.
-# Further details of class House:
-# - Walls
-# - Doors
-# - Furniture
+    """
+        This class contains all the useful, but approximated, information that describes a house for which a mobile manipulator
+        will explore. It will contain the goal objects which are the door knobs that is our mobile manipulator will try to reach.
+        Further details of class House:
+         - Walls
+         - Doors
+         - Furniture
+    """
 
     def __init__(self, env, robot_dim: list, scale: float):
         self._env = env
@@ -55,8 +57,10 @@ class House:
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
 
     def add_wall(self, start_pos, end_pos, wall_thickness=0.1, wall_height=0.5):
-    # This function draws a wall segment into gym `env` from a starting position `start_pos` to a final position `end_pos`.
-    # The default thickness `wall_thickness` and `wall_height` are 10 cm and 50 cm, respectively. They are modifiable.
+        """
+        Draw a wall segment into gym `env` from a starting position `start_pos` to a final position `end_pos`.
+        Default thickness `wall_thickness` and `wall_height` are 10 cm and 50 cm, respectively. They are modifiable.
+        """
 
         vec = end_pos - start_pos       # Obtain a vector from the two points.
         avg = (end_pos + start_pos)/2   # Obtain the average point between the two points, because
@@ -69,8 +73,9 @@ class House:
         self._env.add_shapes(shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos)
 
     def generate_walls(self):
-    # This function generates and draw the fixed wall segments described in `self._points`.
-
+        """
+        Generate and draw the fixed wall segments described in `self._points`.
+        """
         points = np.array([ # Generate wall edges
             [self._points['A'], self._points['B']],
             [self._points['A'], self._points['C']],
@@ -98,8 +103,10 @@ class House:
         self.Obstacles.walls = np.array(self.Obstacles.walls)
 
     def add_furniture(self, urdf, loc, pos_x, pos_y, pos_z=0.0):
-    # This function adds a furniture to the `self._furniture` dictionary given the name and file location `loc` of the `urdf`,
-    # and the 3D position of it in x-axis for `pos_x`, in y-axis for `pos_y`, and in z-axis for `pos_z`.
+        """
+        Add a furniture to the `self._furniture` dictionary given the name and file location `loc` of the `urdf`,
+        and the 3D position of it in x-axis for `pos_x`, in y-axis for `pos_y`, and in z-axis for `pos_z`.
+        """
         urdf_loc = loc + '.urdf'
         urdfObstDict = {
             'type': 'urdf',
@@ -110,14 +117,19 @@ class House:
         # self.Obstacles[urdf].append(self._furniture[urdf]) # TODO
 
     def add_furniture_box(self, pos, dim):
-    # This function creates a furniture in a shape of a cube. It will take the center position `pos`
-    # and the dimension `dim`.
+        """
+        Create a furniture in a shape of a cube. It will take the center position `pos`
+        and the dimension `dim`.
+        """
         self._env.add_shapes(
             shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos
         )
 
     def generate_furniture(self):
-    # Add all the furnitures into the `self._furniture` dictionary.
+        """
+        Add all the furnitures into the `self._furniture` dictionary.
+        """
+
         ### Bottom bedroom
         self.add_furniture(
             urdf='bottom_bedroom_bed_west',
@@ -303,9 +315,11 @@ class House:
             self._env.add_obstacle(self._furniture[furniture])
 
     def add_door(self, room, pos, theta, is_open=True, is_flipped=False):
-        # Add a door depending on its hinge 2D pose location `pos` and orientation `theta`, 
-        # and append it into `self._doors` dictionary and Obstacles' `doors` list. 
-        # Add options whether the door is open or mirrored.
+        """
+        Add a door depending on its hinge 2D pose location `pos` and orientation `theta`, 
+        and append it into `self._doors` dictionary and Obstacles' `doors` list. 
+        Add options whether the door is open or mirrored.
+        """
         self._doors[room] = Door(self._env, pos=pos, is_open=is_open, theta=theta, is_flipped=is_flipped, scale=SCALE)
         self._doors[room].draw_door()
         self.Obstacles.doors.append({'x': self._doors[room].pos_door[0][0], 'y': self._doors[room].pos_door[0][1], 
@@ -316,7 +330,9 @@ class House:
                                         'length': self._doors[room].dim_knob[1], 'height': self._doors[room].dim_knob[2]})
 
     def generate_doors(self):
-        # Add all door and door knobs to pos list and convert all lists to np arrays
+        """
+        Add all door and door knobs to pos list and convert all lists to np arrays
+        """
         self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_open=True, is_flipped=True)
         self.add_door(room='outdoor', pos=self._points['E'], theta=np.pi, is_open=False)
         self.add_door(room='top_bedroom', pos=self._points['P'], theta=0.0, is_open=True)
