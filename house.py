@@ -6,7 +6,7 @@ from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
 
 import os
 
-HEIGHT = 0.5
+HEIGHT = 1.0
 WIDTH = 0.3
 SCALE = 1.3
 
@@ -75,7 +75,7 @@ class House:
         """
         Generate and draw the fixed wall segments described in `self._points`.
         """
-        points = np.array([ # Generate wall edges
+        self._walls = np.array([ # Generate wall edges
             [self._points['A'], self._points['B']],
             [self._points['A'], self._points['C']],
             [self._points['C'], self._points['D']],
@@ -93,10 +93,10 @@ class House:
             [self._points['T'], self._points['U']],
         ])
 
-        for i in range(points.shape[0]):
+        for i in range(self._walls.shape[0]):
         # Iterate for every wall edge, and draw the wall.
-            start_pos = points[i][0]
-            end_pos = points[i][1] 
+            start_pos = self._walls[i][0]
+            end_pos = self._walls[i][1] 
             self.add_wall(start_pos, end_pos)
         
         self.Obstacles.walls = np.array(self.Obstacles.walls)
@@ -145,14 +145,14 @@ class House:
         self.add_furniture(
             urdf='bottom_bedroom_desk',
             loc='resources/objects/pr_assets/furniture/table', 
-            pos_x=((2.0*self._points['O'][0].item()+1.5*SCALE)/2.0), 
-            pos_y=(self._points['O'][1].item()-0.4*SCALE),
+            pos_x=((2.0*self._points['O'][0].item()+1.8*SCALE)/2.0), 
+            pos_y=(self._points['O'][1].item()-0.5*SCALE),
         )
         self.add_furniture(
             urdf='bottom_bedroom_chair',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_north', 
-            pos_x=((2.0*self._points['O'][0].item()+1.5*SCALE)/2.0), 
-            pos_y=(self._points['O'][1].item()-0.4*SCALE)-0.44,
+            pos_x=((2.0*self._points['O'][0].item()+1.8*SCALE)/2.0), 
+            pos_y=(self._points['O'][1].item()-0.5*SCALE)-0.44,
         )
         ### Bottom bedroom
 
@@ -172,14 +172,14 @@ class House:
         self.add_furniture(
             urdf='top_bedroom_desk',
             loc='resources/objects/pr_assets/furniture/table', 
-            pos_x=((2.0*self._points['C'][0].item()+1.5*SCALE)/2.0), 
-            pos_y=(self._points['C'][1].item()-0.4*SCALE),
+            pos_x=((2.0*self._points['C'][0].item()+1.8*SCALE)/2.0), 
+            pos_y=(self._points['C'][1].item()-0.5*SCALE),
         )
         self.add_furniture(
             urdf='bottom_bedroom_chair',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_north', 
-            pos_x=((2.0*self._points['C'][0].item()+1.5*SCALE)/2.0), 
-            pos_y=(self._points['C'][1].item()-0.4*SCALE)-0.44,
+            pos_x=((2.0*self._points['C'][0].item()+1.8*SCALE)/2.0), 
+            pos_y=(self._points['C'][1].item()-0.5*SCALE)-0.44,
         )
         self.add_furniture(
             urdf='top_bedroom_wardrobe',
@@ -343,6 +343,34 @@ class House:
         self.Obstacles.doors = np.array(self.Obstacles.doors)
         self.Obstacles.knobs = np.array(self.Obstacles.knobs)
 
+    def generate_plot_obstacles(self):
+        """
+        Generate lines indicating walls, doors and furniture for 2D plot.
+        @return lists of coordinates describing lines (walls and doors) and boxes (furniture).
+        """
+        # Declare a list storing all the lines and boxes.
+        lines = []
+        boxes = []
+
+        # Generate wall line coordinates
+        for wall in self._walls:
+            line = {
+                'type': 'wall',
+                'coord': wall.tolist()
+            }
+            lines.append(line)
+
+        # Generate door line coordinates
+        for room in self._doors:
+            line = {
+                'type': 'door',
+                'coord': self._doors[room].get_line()
+            }
+            lines.append(line)
+        
+        return lines, boxes
+
+
 class Door:
     """
     This class contains the useful information describing a door. It also contains the goal object `Knob`
@@ -400,6 +428,14 @@ class Door:
         knob_2 = Knob(self.env, pos_knob_2)
         knob_1.draw_knob()
         knob_2.draw_knob()
+
+    def get_line(self):
+        """
+        Return the line coordinates describing the door on XY-plane.
+        """
+        x = self.pos[0] + self.dim_door[0]*np.cos(self.theta)*self.flipped
+        y = self.pos[1] + self.dim_door[0]*np.sin(self.theta)*self.flipped
+        return [self.pos.tolist(), [x,y]]
 
 class Knob:
     """

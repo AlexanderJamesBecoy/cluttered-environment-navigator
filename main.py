@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
 from model import Model
 from house import House
 import warnings
@@ -29,7 +30,7 @@ if __name__ == "__main__":
         action[2] = 0.5
 
         start_pos = robots[0].set_initial_pos(3.0,-2.0)
-        ob = env.reset(pos=start_pos) # pos=...
+        ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
         is_open = {
             'bathroom':         False,
@@ -42,6 +43,20 @@ if __name__ == "__main__":
         house.generate_doors(is_open)
         house.generate_furniture()
         print(env.get_obstacles())
+
+        lines, boxes = house.generate_plot_obstacles()
+
+        # Generate 2D plot of house
+        plt.figure()
+        for line in lines:
+            x = np.array(line['coord'])[:,0]
+            y = np.array(line['coord'])[:,1]
+            if line['type'] == 'wall':
+                color = 'k'
+            else:
+                color = 'r'
+            plt.plot(x,y, color, linewidth=2)
+        plt.show()
 
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")
