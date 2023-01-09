@@ -6,7 +6,7 @@ import sys
 # sys.path.insert(1, '../gym_envs_urdf')
 
 class Model(HolonomicRobot):
-    def __init__(self, urdf="mobilePandaWithGripper.urdf", mode="vel"):
+    def __init__(self, dim, urdf="mobilePandaWithGripper.urdf", mode="vel"):
         self._urdf = urdf
         self.dofs = [0, 1, 2, 4, 6, 8, 9]   # 0/0 - x-direction
                                             # 1/1 - y-direction
@@ -85,6 +85,9 @@ class Model(HolonomicRobot):
             done = False
             i = 0
             while (not done and i < iter):
+                if (i%10 == 0):
+                    house.Obstacles.display()
+
                 action, done = self.set_waypoint_action(house, point, self.state, ztol=ztol, rtol=rtol, atol=atol)
                 env.step(action)
                 self.update_state()

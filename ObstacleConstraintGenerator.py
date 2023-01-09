@@ -3,6 +3,7 @@
 # in house.py
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 class ObstacleConstraintsGenerator:
     def __init__(self, robot_dim: list, scale: float) -> None:
@@ -10,6 +11,10 @@ class ObstacleConstraintsGenerator:
         self.doors = []
         self.knobs = []
         self.robot_dim = robot_dim*scale # to be used to construct constraints later
+        self.robot_norms = []
+        self.constraints = []
+        self.vectors = []
+        self.robot_pos = 0;
 
     def computeNormalVector(self, p1: list[float, float], p2: list[float, float]) -> list[float, float]:
         """
@@ -41,6 +46,8 @@ class ObstacleConstraintsGenerator:
         robot_norms = []
         r = 0.2
         center = (0, 0)
+        self.vectors = []
+
         for wall in self.walls:
             # Set center of the obstacle
             center = np.array([wall['x'], wall['y']])
@@ -83,6 +90,7 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
+                self.vectors.append(left_norm, top_norm, right_norm, bot_norm)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -180,7 +188,7 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
-
+                self.vectors.append(left_norm, top_norm, right_norm, bot_norm)
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
                 print('Doors')
@@ -235,5 +243,14 @@ class ObstacleConstraintsGenerator:
                         robot_norms.append(right_norm@robot_pos[:2])
                         constraints.append(right_norm@right_point)
 
+                self.robot_norms = np.array(np.abs(robot_norms))
+                self.constraints = np.array(np.abs(constraints)-r)
+                self.robot_pos = [robot_pos[0], robot_pos[1]]
+        return self.robot_norms, self.constraints
 
-        return np.array(np.abs(robot_norms)), np.array(np.abs(constraints)-r)
+        def display(self) -> None:
+            plt.figure(figsize=(12, 7))
+            plt.scatter(self.robot_pos, s=10, c='red')
+            for v in self.vectors:
+                plt.plot(v[0], v[1], c = 'blue')
+            plt.show()
