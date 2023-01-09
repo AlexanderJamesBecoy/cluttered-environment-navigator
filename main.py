@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from model import Model
 from house import House
 import warnings
@@ -42,12 +43,11 @@ if __name__ == "__main__":
         house.generate_walls()
         house.generate_doors(is_open)
         house.generate_furniture()
-        print(env.get_obstacles())
 
         lines, boxes = house.generate_plot_obstacles()
 
         # Generate 2D plot of house
-        plt.figure()
+        fig, ax = plt.subplots()
         for line in lines:
             x = np.array(line['coord'])[:,0]
             y = np.array(line['coord'])[:,1]
@@ -55,7 +55,13 @@ if __name__ == "__main__":
                 color = 'k'
             else:
                 color = 'r'
-            plt.plot(x,y, color, linewidth=2)
+            ax.plot(x,y, color, linewidth=2)
+        for box in boxes:
+            ax.add_patch(
+                Rectangle((box['x'],box['y']),box['w'],box['h'],
+                facecolor='blue',
+                fill=True,
+            ))
         plt.show()
 
         print(f"Length: {len(action)}")

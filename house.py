@@ -52,7 +52,7 @@ class House:
             self._points[x] = (self._points[x] - self._offset)*SCALE
 
         self._doors = {}
-        self._furniture = {}
+        self._furniture = []
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
 
     def add_wall(self, start_pos, end_pos, wall_thickness=0.1, wall_height=0.5):
@@ -101,7 +101,7 @@ class House:
         
         self.Obstacles.walls = np.array(self.Obstacles.walls)
 
-    def add_furniture(self, urdf, loc, pos_x, pos_y, pos_z=0.0):
+    def add_furniture(self, urdf, loc, dim, pos_x, pos_y, pos_z=0.0):
         """
         Add a furniture to the `self._furniture` dictionary given the name and file location `loc` of the `urdf`,
         and the 3D position of it in x-axis for `pos_x`, in y-axis for `pos_y`, and in z-axis for `pos_z`.
@@ -112,10 +112,16 @@ class House:
             'geometry': {'position': [pos_x, pos_y, pos_z]},
             'urdf': os.path.join(os.path.dirname(__file__), urdf_loc),
         }
-        self._furniture[urdf] = UrdfObstacle(name=urdf, content_dict=urdfObstDict)
+        furniture = {
+            'name': urdf,
+            'urdf': UrdfObstacle(name=urdf, content_dict=urdfObstDict),
+            'pos': [pos_x, pos_y, pos_z],
+            'dim': dim,
+        }
+        self._furniture.append(furniture)
         # self.Obstacles[urdf].append(self._furniture[urdf]) # TODO
 
-    def add_furniture_box(self, pos, dim):
+    def add_furniture_box(self, name, pos, dim):
         """
         Create a furniture in a shape of a cube. It will take the center position `pos`
         and the dimension `dim`.
@@ -123,6 +129,13 @@ class House:
         self._env.add_shapes(
             shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos
         )
+        furniture = {
+            'name': name,
+            'urdf': None,
+            'pos': pos[0],
+            'dim': dim,
+        }
+        self._furniture.append(furniture)
 
     def generate_furniture(self):
         """
@@ -130,29 +143,34 @@ class House:
         """
 
         ### Bottom bedroom
+        dim = [2,2,0.5]
         self.add_furniture(
             urdf='bottom_bedroom_bed_west',
             loc='resources/objects/cob_simulation/objects/bed_west', 
             pos_x=(self._points['Q'][0].item()-1.0*SCALE), 
             pos_y=(self._points['Q'][1].item()+0.5*SCALE),
+            dim=dim,
         )
         self.add_furniture(
             urdf='bottom_bedroom_cabinet',
             loc='resources/objects/cob_simulation/objects/cabinet_ikea_malm_big', 
             pos_x=(self._points['A'][0].item()+0.7), 
             pos_y=(self._points['A'][1].item()+0.4),
+            dim=dim,
         )
         self.add_furniture(
             urdf='bottom_bedroom_desk',
             loc='resources/objects/pr_assets/furniture/table', 
             pos_x=((2.0*self._points['O'][0].item()+1.8*SCALE)/2.0), 
             pos_y=(self._points['O'][1].item()-0.5*SCALE),
+            dim=dim,
         )
         self.add_furniture(
             urdf='bottom_bedroom_chair',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_north', 
             pos_x=((2.0*self._points['O'][0].item()+1.8*SCALE)/2.0), 
             pos_y=(self._points['O'][1].item()-0.5*SCALE)-0.44,
+            dim=dim,
         )
         ### Bottom bedroom
 
@@ -161,37 +179,43 @@ class House:
             urdf='top_bedroom_bed_north_1',
             loc='resources/objects/cob_simulation/objects/bed_north', 
             pos_x=((self._points['O'][0].item() + self._points['P'][0].item())/2.0 - 0.05), 
-            pos_y=(self._points['Q'][1].item()/2.0 + 2.8)
+            pos_y=(self._points['Q'][1].item()/2.0 + 2.8),
+            dim=dim,
         )
         self.add_furniture(
             urdf='top_bedroom_bed_north_2',
             loc='resources/objects/cob_simulation/objects/bed_north', 
             pos_x=((self._points['O'][0].item() + self._points['P'][0].item())/2.0 + 1.0), 
-            pos_y=(self._points['Q'][1].item()/2.0 + 2.8)
+            pos_y=(self._points['Q'][1].item()/2.0 + 2.8),
+            dim=dim,
         )
         self.add_furniture(
             urdf='top_bedroom_desk',
             loc='resources/objects/pr_assets/furniture/table', 
             pos_x=((2.0*self._points['C'][0].item()+1.8*SCALE)/2.0), 
             pos_y=(self._points['C'][1].item()-0.5*SCALE),
+            dim=dim,
         )
         self.add_furniture(
             urdf='bottom_bedroom_chair',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_north', 
             pos_x=((2.0*self._points['C'][0].item()+1.8*SCALE)/2.0), 
             pos_y=(self._points['C'][1].item()-0.5*SCALE)-0.44,
+            dim=dim,
         )
         self.add_furniture(
             urdf='top_bedroom_wardrobe',
             loc='resources/objects/cob_simulation/objects/cabinet_ikea_galant', 
             pos_x=(self._points['J'][0].item()-1.5*SCALE), 
             pos_y=(self._points['J'][1].item()-0.3*SCALE),
+            dim=dim,
         )
         self.add_furniture(
             urdf='top_bedroom_cabinet',
             loc='resources/objects/cob_simulation/objects/cabinet_ikea_malm_big', 
             pos_x=(self._points['J'][0].item()-0.5*SCALE), 
             pos_y=(self._points['J'][1].item()-0.3*SCALE),
+            dim=dim,
         )
         ### Top bedroom
 
@@ -201,88 +225,103 @@ class House:
             loc='resources/objects/pr_assets/furniture/table', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_chair_1',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_south', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0-0.35),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0+0.44),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_chair_2',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_south', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0+0.35),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0+0.44),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_chair_3',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_north', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0-0.35),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0-0.44),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_chair_4',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_north', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0+0.35),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0-0.44),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_chair_5',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_east', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0-1.0),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_chair_6',
             loc='resources/objects/cob_simulation/objects/chair_ikea_borje_west', 
             pos_x=((self._points['P'][0].item()+self._points['M'][0].item())/2.0+SCALE*1.0+1.0),
             pos_y=((self._points['P'][1].item()+self._points['Q'][1].item())/2.0),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_couch',
             loc='resources/objects/cob_simulation/objects/couch', 
             pos_x=((self._points['I'][0].item()+self._points['S'][0].item())/2.0-SCALE*0.3),
             pos_y=((self._points['I'][1].item()-0.75)),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_plant',
             loc='resources/objects/cob_simulation/objects/plant_floor_big', 
             pos_x=(self._points['S'][0].item()-0.6),
             pos_y=((self._points['S'][1].item()-0.6)),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_tv_table',
             loc='resources/objects/cob_simulation/objects/table_tv', 
             pos_x=((self._points['I'][0].item()+self._points['S'][0].item())/2.0-SCALE*0.3),
             pos_y=((self._points['A'][1].item() + 0.32*SCALE)),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_tv',
             loc='resources/objects/cob_simulation/objects/tv_samsung', 
             pos_x=((self._points['I'][0].item()+self._points['S'][0].item())/2.0-SCALE*0.3),
             pos_y=((self._points['A'][1].item() + 0.32*SCALE)),
-            pos_z=(0.58)
+            pos_z=(0.58),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_bookcase_1',
             loc='resources/objects/cob_simulation/objects/cabinet_living_room_vertical', 
             pos_x=(self._points['L'][0].item()+0.5),
             pos_y=(self._points['L'][1].item()-1.0),
+            dim=dim,
         )
         self.add_furniture(
             urdf='living_room_bookcase_2',
             loc='resources/objects/cob_simulation/objects/cabinet_living_room_vertical', 
             pos_x=(self._points['L'][0].item()+0.5),
             pos_y=(self._points['L'][1].item()-2.5),
+            dim=dim,
         )
         ### Living room
 
         ### Kitchen     # Missing urdf for these furniture
         self.add_furniture_box( # Counter, sink # TODO: into objects?
+            name='kitchen_counter_sink',
             pos=[[(self._points['E'][0].item()+self._points['F'][0].item())/2.0,self._points['E'][1].item()-0.4,0]],
             dim=np.array([np.abs(self._points['E'][0].item()-self._points['F'][0].item())-0.3, 0.6, 0.9]),
         )
         self.add_furniture_box( # Counter, oven
+            name='kitchen_counter_oven',
             pos=[[self._points['F'][0].item()-0.4,(self._points['F'][1].item()+self._points['G'][1].item())/2.0-0.3,0]],
             dim=np.array([0.6, np.abs(self._points['F'][1].item()-self._points['G'][1].item())-0.6, 0.9]),
         )
@@ -296,14 +335,17 @@ class House:
 
         ### Bathroom    # Missing urdf for these furniture
         self.add_furniture_box( # Bathtub
+            name='bathroom_bathtub',
             pos=[[(self._points['S'][0].item()+self._points['H'][0].item())/2.0,self._points['S'][1].item()-0.45,0]],
             dim=np.array([np.abs(self._points['S'][0].item()-self._points['H'][0].item())-0.3, 0.8, 0.6]),
         )
         self.add_furniture_box( # Toilet, backside
+            name='bathroom_toilet_back',
             pos=[[self._points['T'][0].item()+0.3,self._points['T'][1].item()+1.2,0]],
             dim=np.array([0.3, 0.45, 0.8]),
         )
         self.add_furniture_box( # Toilet, seat
+            name='bathroom_toilet_seat',
             pos=[[self._points['T'][0].item()+0.65,self._points['T'][1].item()+1.2,0]],
             dim=np.array([0.4, 0.45, 0.4]),
         )
@@ -311,7 +353,9 @@ class House:
 
         for furniture in self._furniture:
         # Add all furniture in `self._furniture` dictionary into the Gym environment.
-            self._env.add_obstacle(self._furniture[furniture])
+            # self._env.add_obstacle(self._furniture[furniture])
+            if furniture['urdf'] is not None:
+                self._env.add_obstacle(furniture['urdf'])
 
     def add_door(self, room, pos, theta, is_open=True, is_flipped=False):
         """
@@ -367,6 +411,16 @@ class House:
                 'coord': self._doors[room].get_line()
             }
             lines.append(line)
+
+        # Generate furniture as box coordinates
+        for furniture in self._furniture:
+            box = {
+                'x': furniture['pos'][0]-furniture['dim'][0]/2.0,
+                'y': furniture['pos'][1]-furniture['dim'][1]/2.0,
+                'w': furniture['dim'][0],
+                'h': furniture['dim'][1],
+            }
+            boxes.append(box)
         
         return lines, boxes
 
@@ -382,7 +436,6 @@ class Door:
         Initialize an object of this class. It requires the pointer to the gym environment `env`, the orientation of the door `theta`.
         Booleans describing whether the door is mirrored `is_flipped`, and whether the door is open `is_open` are set to False by default.
         """
-        
         self.env = env
         self.pos = pos
         self.theta = theta
@@ -405,7 +458,6 @@ class Door:
         """
         Draw a door into gym `env`. No further passing of arguments required.
         """
-
         offset_x = 0.5*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
         offset_y = 0.5*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
 
