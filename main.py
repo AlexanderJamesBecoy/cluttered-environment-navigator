@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from model import Model
@@ -13,7 +15,6 @@ R_RADIUS = 0.2
 R_HEIGHT = 0.3
 
 if __name__ == "__main__":
-
     show_warnings = False
     warning_flag = "default" if show_warnings else "ignore"
     with warnings.catch_warnings():
@@ -70,7 +71,7 @@ if __name__ == "__main__":
 
         # Target position of the robot
         waypoint = np.array([0, -2])        
-        waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
+        waypoints = np.array([[0, -2]])
 
         # Follow a path set by waypoints
         robots[0].follow_path(env=env, house=house, waypoints=waypoints)

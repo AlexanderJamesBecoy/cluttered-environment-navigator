@@ -87,11 +87,10 @@ class Model(HolonomicRobot):
             done = False
             i = 0
             while (not done and i < iter):
-                if (i%10 == 0):
-                    house.Obstacles.display()
-
                 action, done = self.set_waypoint_action(house, point, self.state, ztol=ztol, rtol=rtol, atol=atol)
                 env.step(action)
                 self.update_state()
+                if (i%10 == 0):
+                    house.Obstacles.display()
                 i += 1
 
