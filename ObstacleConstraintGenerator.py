@@ -15,6 +15,7 @@ class ObstacleConstraintsGenerator:
         self.constraints = []
         self.vectors = []
         self.robot_pos = 0;
+        self.points = []
 
     def computeNormalVector(self, p1: list[float, float], p2: list[float, float]) -> list[float, float]:
         """
@@ -47,6 +48,7 @@ class ObstacleConstraintsGenerator:
         r = 0.2
         center = (0, 0)
         self.vectors = []
+        self.points = []
 
         for wall in self.walls:
             # Set center of the obstacle
@@ -94,6 +96,10 @@ class ObstacleConstraintsGenerator:
                 self.vectors.append(right_norm)
                 self.vectors.append(top_norm)
                 self.vectors.append(bot_norm)
+                self.points.append(left_point)
+                self.points.append(right_point)
+                self.points.append(top_point)
+                self.points.append(bot_point)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -195,6 +201,10 @@ class ObstacleConstraintsGenerator:
                 self.vectors.append(right_norm)
                 self.vectors.append(top_norm)
                 self.vectors.append(bot_norm)
+                self.points.append(left_point)
+                self.points.append(right_point)
+                self.points.append(top_point)
+                self.points.append(bot_point)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -254,12 +264,15 @@ class ObstacleConstraintsGenerator:
         self.constraints = np.array(np.abs(constraints)-r)
         self.robot_pos = [robot_pos[0], robot_pos[1]]
         self.vectors = np.array(self.vectors)
+        self.points = np.array(self.points)
         return self.robot_norms, self.constraints
 
     def display(self) -> None:
         print('plotting')
         fig, ax = plt.subplots(figsize=(12, 7))
         ax.scatter(self.robot_pos[0], self.robot_pos[1], s=10, c='red')
-        for v in self.vectors:
-            ax.plot(v[0], v[1], c = 'blue')
+        for point, vec in zip(self.points, self.vectors):
+            ax.arrow(point[0], point[1], vec[0], vec[1])
+        ax.set_ylim([-4.5, 4.5])
+        ax.set_xlim([-9, 6.5])
         plt.show()

@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from model import Model
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         action = np.zeros(env.n())
         action[2] = 0.5
 
-        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        start_pos = robots[0].set_initial_pos(-7, -3)
         ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
         is_open = {
