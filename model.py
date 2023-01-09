@@ -1,9 +1,6 @@
 import numpy as np
 from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
-#from urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
-import sys
-# sys.path.insert(1, '../gym_envs_urdf')
 
 class Model(HolonomicRobot):
     def __init__(self, dim, urdf="mobilePandaWithGripper.urdf", mode="vel"):
@@ -31,6 +28,9 @@ class Model(HolonomicRobot):
             self._urdf = urdf
 
         super().__init__(-1, self._urdf, mode=mode)
+
+    def set_initial_pos(self, x, y):
+        return np.array([x,y,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.], dtype=np.float32)
 
     def act(self, joints):
         return self.dofs[joints]
