@@ -328,15 +328,16 @@ class House:
                                         'theta': self._doors[room].pos_knob[0][2], 'width': self._doors[room].dim_knob[0], 
                                         'length': self._doors[room].dim_knob[1], 'height': self._doors[room].dim_knob[2]})
 
-    def generate_doors(self):
+    def generate_doors(self, is_opened):
         """
         Add all door and door knobs to pos list and convert all lists to np arrays
+        @param is_open - determines whether the door depending on the name is open or not.
         """
-        self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_open=True, is_flipped=True)
-        self.add_door(room='outdoor', pos=self._points['E'], theta=np.pi, is_open=False)
-        self.add_door(room='top_bedroom', pos=self._points['P'], theta=0.0, is_open=True)
-        self.add_door(room='bottom_bedroom', pos=self._points['P'], theta=0.5*np.pi, is_open=True, is_flipped=True)
-        self.add_door(room='kitchen', pos=self._points['I'], theta=-0.5*np.pi, is_open=True, is_flipped=True)
+        self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_open=is_opened['bathroom'], is_flipped=True)
+        self.add_door(room='outdoor', pos=self._points['E'], theta=np.pi, is_open=is_opened['outdoor'])
+        self.add_door(room='top_bedroom', pos=self._points['P'], theta=0.0, is_open=is_opened['top_bedroom'])
+        self.add_door(room='bottom_bedroom', pos=self._points['P'], theta=0.5*np.pi, is_open=is_opened['bottom_bedroom'], is_flipped=True)
+        self.add_door(room='kitchen', pos=self._points['I'], theta=-0.5*np.pi, is_open=is_opened['kitchen'], is_flipped=True)
             
         # Append the door into list of Obstacles' `doors`.
         self.Obstacles.doors = np.array(self.Obstacles.doors)

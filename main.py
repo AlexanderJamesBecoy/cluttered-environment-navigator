@@ -28,10 +28,18 @@ if __name__ == "__main__":
         action = np.zeros(env.n())
         action[2] = 0.5
 
-        ob = env.reset() # pos=...
+        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        ob = env.reset(pos=start_pos) # pos=...
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
+        is_open = {
+            'bathroom':         False,
+            'outdoor':          False,
+            'top_bedroom':      False,
+            'bottom_bedroom':   False,
+            'kitchen':          False,
+        }
         house.generate_walls()
-        house.generate_doors()
+        house.generate_doors(is_open)
         house.generate_furniture()
         print(env.get_obstacles())
 
