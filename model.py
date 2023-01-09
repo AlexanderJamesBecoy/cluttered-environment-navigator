@@ -1,14 +1,12 @@
 import numpy as np
 from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
-#from urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
-import sys
-# sys.path.insert(1, '../gym_envs_urdf')
 
 class Model(HolonomicRobot):
     def __init__(self, dim, urdf="mobilePandaWithGripper.urdf", mode="vel"):
         self._urdf = urdf
-        self.dofs = [0, 1, 2, 4, 6, 8, 9]   # 0/0 - x-direction
+        self._dim = dim
+        self._dofs = [0, 1, 2, 4, 6, 8, 9]   # 0/0 - x-direction
                                             # 1/1 - y-direction
                                             # 2/2 - yaw
                                             # 3/4 - arm joint 1
@@ -16,6 +14,7 @@ class Model(HolonomicRobot):
                                             # 5/8 - arm joint 3
                                             # 6/9 - arm joint 4
         #self.states = {'x': 0, 'y': 0, 'theta': 0, 'v_x': 0, 'v_y': 0, 'v_r': 0}
+
         #search for urdf in package if not found in cwd
         if not os.path.exists(urdf):
             root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +28,9 @@ class Model(HolonomicRobot):
             self._urdf = urdf
 
         super().__init__(-1, self._urdf, mode=mode)
+
+    def set_initial_pos(self, x, y):
+        return np.array([x,y,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.], dtype=np.float32)
 
     def act(self, joints):
         return self.dofs[joints]
