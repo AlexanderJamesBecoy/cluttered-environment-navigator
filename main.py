@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from model import Model
 from house import House
 import warnings
@@ -9,6 +11,26 @@ R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
 R_RADIUS = 0.2
 R_HEIGHT = 0.3
+
+# Matplotlib
+def plot_2d(lines, boxes):
+    # Generate 2D plot of house
+    fig, ax = plt.subplots()
+    for line in lines:
+        x = np.array(line['coord'])[:,0]
+        y = np.array(line['coord'])[:,1]
+        if line['type'] == 'wall':
+            color = 'k'
+        else:
+            color = 'r'
+        ax.plot(x,y, color, linewidth=2)
+    for box in boxes:
+        ax.add_patch(
+            Rectangle((box['x'],box['y']),box['w'],box['h'],
+            facecolor='blue',
+            fill=True,
+        ))
+    plt.show()
 
 if __name__ == "__main__":
 
@@ -28,16 +50,22 @@ if __name__ == "__main__":
         action = np.zeros(env.n())
         action[2] = 0.5
 
-        ob = env.reset() # pos=...
+        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
+        is_open = {
+            'bathroom':         True,
+            'outdoor':          True,
+            'top_bedroom':      True,
+            'bottom_bedroom':   True,
+            'kitchen':          True,
+        }
         house.generate_walls()
-        house.generate_doors()
+        house.generate_doors(is_open)
         house.generate_furniture()
-        print(env.get_obstacles())
 
-        # Generate obstacle constraints
-        left, right, low, up = house.Obstacles.generateConstraintsCylinder()
-        print(left.shape, right.shape, low.shape, up.shape)
+        lines, boxes = house.generate_plot_obstacles()
+        plot_2d(lines, boxes)
 
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")
@@ -48,6 +76,6 @@ if __name__ == "__main__":
         waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
 
         # Follow a path set by waypoints
-        robots[0].follow_path(env=env, waypoints=waypoints)
+        robots[0].follow_path(env=env, house=house, waypoints=waypoints)
 
         env.close()

@@ -1,4 +1,3 @@
 gym_envs_urdf
 __pycache__
-pr_assets
-cob_simulation
+cob_simulation/
