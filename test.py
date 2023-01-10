@@ -3,7 +3,7 @@ import numpy as np
 from model import Model
 from house import House
 import warnings
-from controller import MPController
+from MPC import MPController
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 
@@ -77,10 +77,6 @@ if __name__ == "__main__":
         house.generate_walls()
         house.generate_doors(is_open)
 
-        # Generate obstacle constraints
-        left, right, low, up = house.Obstacles.generateConstraintsCylinder()
-        print(left.shape, right.shape, low.shape, up.shape)
-
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")
         history = []
@@ -92,7 +88,7 @@ if __name__ == "__main__":
         while(1):
             ob, _, _, _ = env.step(action)
             state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
-            actionMPC = MPC.FHOCP(state0, goal)
+            actionMPC = MPC.solve_MPC(state0, goal)
             action = np.zeros(env.n())
             for i, j in enumerate(robots[0]._dofs):
                 action[j] = actionMPC[i]

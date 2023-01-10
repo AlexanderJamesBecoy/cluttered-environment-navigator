@@ -73,72 +73,73 @@ class MPController:
         self.lower_limit_input = self.model.get_observation_space()['joint_state']['velocity'].low[self.dofs]
         self.upper_limit_input = self.model.get_observation_space()['joint_state']['velocity'].high[self.dofs]
 
-    def FHOCP(self, state0: np.ndarray, goal: np.ndarray) -> np.ndarray:
+        self.FHOCP()
+
+    def FHOCP(self):
         """
-        Methods to solve the Finite Horizon Optimal Control Problem. Given the MPC structure, it declares the
+        Methods to build the Finite Horizon Optimal Control Problem. Given the MPC structure, it declares the
         optimization varibles (future states and inputs), it defines the cost function, it adds the constraints
         and it solves the optimization problem.
-
-        Args:
-            state0 (np.ndarray): initial state (initial configuration of the robot)
-            goal (np.ndarray): goal state (goal configuration of the robot)
-
-        Returns:
-            np.ndarray: input (velocity) to apply to the joints (only the input at the first time step is applied)
         """
 
         self.opti = Opti()
+        self.state0 = self.opti.parameter(len(self.dofs), 1) # Parameters for initial state
+        self.goal = self.opti.parameter(len(self.dofs), 1) # Parameters for the goal state
         self.x = self.opti.variable(len(self.dofs), self.N + 1) # Optimization varibles (states) over an horizon N
         self.u = self.opti.variable(len(self.dofs), self.N) # Optimization variables (inputs) over an horizon N
         self.cost = 0. # Initialization of the cost function
-        self.add_objective_function(state0, goal)
+        self.add_objective_function()
         self.opti.minimize(self.cost)
-        self.add_constraints(state0)
-        self.opti.solver('ipopt') # Set solver 'ipopt'
+        self.add_constraints()
+        p_opts = dict(print_time=True, verbose=False)
+        s_opts = dict(print_level=0)
+        self.opti.solver('ipopt', p_opts, s_opts) # Set solver 'ipopt'
+        # solution = self.opti.solve() # Solve the problem
+        # print(solution.value(self.u[:, 0]))
+
+        # return solution.value(self.u[:, 0])
+
+    def solve_MPC(self, state0: np.ndarray, goal: np.ndarray) -> np.ndarray:
+
+        self.opti.set_value(self.state0, state0)
+        self.opti.set_value(self.goal, goal)
         solution = self.opti.solve() # Solve the problem
 
-        return solution.value(self.opti.x)
+        return solution.value(self.u[:, 0])
 
-    def add_objective_function(self, state0: np.ndarray, goal: np.ndarray):
+    def add_objective_function(self):
         """
         Methods to build the objective function, made of three terms
         - cost to the goal (weight_tracking)
         - cost of the input (weight_input)
         - cost of the terminal point, distance from the goal at x(n+1) (weight_terminal)
-
-        Args:
-            state0 (np.ndarray): initial state (initial configuration of the robot)
-            goal (np.ndarray): goal state (goal configuration of the robot)
         """
 
         for k in range(self.N): # Iterate over all the steps of the prediction horizon
-            self.cost += (self.opti.x[:, k] - goal).T @ self.weight_tracking @ (self.opti.x[:, k] - goal)
-            self.cost += self.opti.u[:, k].T @ self.weight_tracking @ self.opti.u[:, k]
-        self.cost += (self.opti.x[:, self.N] - goal).T @ self.weight_tracking @ (self.opti.x[:, self.N] - goal)
+            self.cost += (self.x[:, k] - self.goal).T @ self.weight_tracking @ (self.x[:, k] - self.goal)
+            self.cost += self.u[:, k].T @ self.weight_tracking @ self.u[:, k]
+        self.cost += (self.x[:, self.N] - self.goal).T @ self.weight_tracking @ (self.x[:, self.N] - self.goal)
 
-    def add_constraints(self, state0):
+    def add_constraints(self):
         """
         Methods to add the constraints:
         - limits on joints position (x: state)
         - limits on the joints velocity (u: input)
         - robot model kinematics/dynamics
         - static ostable avoidance
-
-        Args:
-            state0 (_type_): initial state (initial configuration of the robot)
         """
-        self.opti.subject_to(self.opti.x[:, 0] == state0) # Initial state constraint
+        self.opti.subject_to(self.x[:, 0] == self.state0) # Initial state constraint
         for k in range(self.N): # Iterate over all the steps of the prediction horizon
-            self.opti.subject_to(self.lower_limit_state <= self.opti.x[:, k])
-            self.opti.subject_to(self.opti.x[:, k] <= self.upper_limit_state)
-            self.opti.subject_to(self.lower_limit_input <= self.opti.u[:, k])
-            self.opti.subject_to(self.opti.u[:, k] <= self.upper_limit_input)
+            self.opti.subject_to(self.lower_limit_state <= self.x[:, k])
+            self.opti.subject_to(self.x[:, k] <= self.upper_limit_state)
+            self.opti.subject_to(self.lower_limit_input <= self.u[:, k])
+            self.opti.subject_to(self.u[:, k] <= self.upper_limit_input)
 
-        self.opti.subject_to(self.lower_limit_state <= self.opti.x[:, self.N])
-        self.opti.subject_to(self.opti.x[:, self.N] <= self.upper_limit_state)
+        self.opti.subject_to(self.lower_limit_state <= self.x[:, self.N])
+        self.opti.subject_to(self.x[:, self.N] <= self.upper_limit_state)
 
         # Robot model constraints
 
         for k in range(self.N):
-            self.opti.subject_to(self.opti.x[:, k+1] == self.opti.x[:, k] + self.dt * self.u[:, k])
+            self.opti.subject_to(self.x[:, k+1] == self.x[:, k] + self.dt * self.u[:, k])
         # Static obstacles avoidance: TODO
