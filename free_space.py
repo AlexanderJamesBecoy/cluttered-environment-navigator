@@ -3,6 +3,7 @@ from casadi import *
 import qpsolvers
 from scipy import sparse
 import cvxpy as cp
+import time
 
 
 EPSILON_SPHERE = 0.1
@@ -72,10 +73,24 @@ class FreeSpace:
             print("Iteration number: ", i+1, "/", MAX_ITER)
             # keep track of the previous determinant to check the tolerance on the relative change in ellipsoid volume
             det_C_prec = np.linalg.det(self.ellipsoid.C)
+            
+            print("Computing separating hyperplanes...")
+            start_time = time.time()
             self.separating_hyperplanes() # find hyperplanes that separates the obstacles from the ellipsoid
+            end_time = time.time()
+            print("Time: ", (end_time - start_time))
+
+            print("Computing inscribed ellipsoid...")
+            start_time = time.time()
             self.inscribed_ellipsoid() # find the maximum volume ellipsoid inscribed in the hyperplanes
+            end_time = time.time()
+            print("Time: ", (end_time - start_time))
+
             det_C = np.linalg.det(self.ellipsoid.C)
-            if ((det_C - det_C_prec) / det_C_prec) < TOLLERANCE: # check termination condition
+
+            relative_increase = (det_C - det_C_prec) / det_C_prec
+            print("Relative increase: ", relative_increase)
+            if relative_increase < TOLLERANCE: # check termination condition
                 print("Update succeeded!")
                 break
 
@@ -92,13 +107,13 @@ class FreeSpace:
         while len(obs_remaining) != 0:
 
             # find the closest obstacles to the ellipsoid
-            print("Looking for closest obstacle...")
+            # print("Looking for closest obstacle...")
             closest_obs = self.clostest_obstacle(obs_remaining)
             # find the closest point of the obstacle to the ellipsoid
-            print("Looking for closest point...")
+            # print("Looking for closest point...")
             x_closest = self.clostest_point_on_obstacle(closest_obs)
             # find the hyperplane tangent to the point that separates the obstacle from the ellipsoid
-            print("Computing separating hyperplane...")
+            # print("Computing separating hyperplane...")
             a_i, b_i = self.tangent_plane(x_closest)
             self.A.append(a_i)
             self.b.append(b_i)
@@ -109,9 +124,10 @@ class FreeSpace:
                 for vertex_j in self.obstacles[obs_i]:
                     if a_i @ vertex_j < (b_i - CHECK_TOLLERANCE):
                         check = False
+                        break
 
                 if check:
-                    print("REMOVED")
+                    # print("Obstacle removed...")
                     obs_remaining.remove(obs_i)
                     obs_excluded.append(obs_i)
 
@@ -123,7 +139,7 @@ class FreeSpace:
         # max               log det(C)
         # subject to        ||C*ai|| + ai^T * d <= bi for all i
         #                   C >> 0
-        print("Computing inscribed ellipsoid...")
+        # print("Computing inscribed ellipsoid...")
         C = cp.Variable((SPACE_DIM, SPACE_DIM), symmetric=True)
         d = cp.Variable(SPACE_DIM)
         objective = cp.Maximize(cp.log_det(C))
@@ -132,7 +148,7 @@ class FreeSpace:
             constraints += [cp.norm(C @ ai) + ai @ d <= bi]
         prob = cp.Problem(objective, constraints)
         prob.solve()
-        print("Solution: ", C.value, d.value)
+        # print("Solution: ", C.value, d.value)
 
         # Update the ellipsoid parameters
         self.ellipsoid = Ellipsoid(d.value, C.value)
