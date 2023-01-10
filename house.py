@@ -8,7 +8,7 @@ import os
 
 HEIGHT = 1.0
 WIDTH = 0.1
-SCALE = 1.3
+SCALE = 1.5
 
 class House:
     """
@@ -55,6 +55,12 @@ class House:
         self._furniture = []
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
 
+    def update(self, env):
+        """
+        Update a new Gym environment.
+        """
+        self._env = env
+
     def add_wall(self, start_pos, end_pos, wall_thickness=0.1, wall_height=0.5):
         """
         Draw a wall segment into gym `env` from a starting position `start_pos` to a final position `end_pos`.
@@ -75,16 +81,41 @@ class House:
         """
         Generate and draw the fixed wall segments described in `self._points`.
         """
+        # self._walls = np.array([ # Generate wall edges
+        #     [self._points['A'], self._points['B']],
+        #     [self._points['A'], self._points['C']],
+        #     [self._points['C'], self._points['D']],
+        #     [self._points['E'], self._points['F']],
+        #     [self._points['F'], self._points['G']],
+        #     [self._points['B'], self._points['H']],
+        #     [self._points['I'], self._points['H']],
+        #     [self._points['J'], self._points['K']],
+        #     [self._points['V'], self._points['M']],
+        #     [self._points['L'], self._points['M']],
+        #     [self._points['E'], self._points['N']],
+        #     [self._points['O'], self._points['P']],
+        #     [self._points['Q'], self._points['R']],
+        #     [self._points['S'], self._points['T']],
+        #     [self._points['T'], self._points['U']],
+        # ])
         self._walls = np.array([ # Generate wall edges
-            [self._points['A'], self._points['B']],
-            [self._points['A'], self._points['C']],
-            [self._points['C'], self._points['D']],
+            [self._points['A'], self._points['Q']],
+            [self._points['Q'], self._points['B']],
+            [self._points['A'], self._points['O']],
+            [self._points['O'], self._points['C']],
+            [self._points['C'], self._points['J']],
+            [self._points['J'], self._points['L']],
+            [self._points['L'], self._points['D']],
             [self._points['E'], self._points['F']],
             [self._points['F'], self._points['G']],
-            [self._points['B'], self._points['H']],
-            [self._points['I'], self._points['H']],
+            [self._points['B'], self._points['W']],
+            [self._points['W'], self._points['H']],
+            [self._points['I'], self._points['S']],
+            [self._points['S'], self._points['G']],
+            [self._points['G'], self._points['H']],
             [self._points['J'], self._points['K']],
-            [self._points['V'], self._points['M']],
+            [self._points['V'], self._points['K']],
+            [self._points['K'], self._points['M']],
             [self._points['L'], self._points['M']],
             [self._points['E'], self._points['N']],
             [self._points['O'], self._points['P']],
@@ -457,7 +488,7 @@ class Door:
         self.scale = scale
         self.flipped = 1    # No mirroring of poses.
         self.open = 0       # No additive angle.
-        self.dim_door = np.array([1.0*self.scale, 0.1, 2.0])
+        self.dim_door = np.array([1.0*self.scale, 0.2, 2.0])
         self.dim_knob = np.array([0.2*self.scale, 0.3, 0.2]) # TODO -> into goal object
         self.pos_door = []
         self.pos_knob = []
