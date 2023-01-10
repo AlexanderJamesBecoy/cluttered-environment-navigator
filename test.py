@@ -66,8 +66,16 @@ if __name__ == "__main__":
 
         ob = env.reset() # pos=...
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
+        is_open = {
+            'bathroom':         True,
+            'outdoor':          True,
+            'top_bedroom':      True,
+            'bottom_bedroom':   True,
+            'kitchen':          True,
+        }
+
         house.generate_walls()
-        house.generate_doors()
+        house.generate_doors(is_open)
 
         # Generate obstacle constraints
         left, right, low, up = house.Obstacles.generateConstraintsCylinder()
