@@ -3,6 +3,7 @@
 # in house.py
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 class ObstacleConstraintsGenerator:
     def __init__(self, robot_dim: list, scale: float) -> None:
@@ -10,6 +11,13 @@ class ObstacleConstraintsGenerator:
         self.doors = []
         self.knobs = []
         self.robot_dim = robot_dim*scale # to be used to construct constraints later
+        self.robot_norms = []
+        self.constraints = []
+        self.vectors_doors = []
+        self.vectors_walls = []
+        self.robot_pos = 0;
+        self.points_doors = []
+        self.points_walls = []
 
     def computeNormalVector(self, p1: list[float, float], p2: list[float, float]) -> list[float, float]:
         """
@@ -41,6 +49,11 @@ class ObstacleConstraintsGenerator:
         robot_norms = []
         r = 0.2
         center = (0, 0)
+        self.vectors_walls = []
+        self.points_walls = []
+        self.vectors_doors = []
+        self.points_doors = []
+
         for wall in self.walls:
             # Set center of the obstacle
             center = np.array([wall['x'], wall['y']])
@@ -83,6 +96,14 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
+                self.vectors_walls.append(center-left_point)
+                self.vectors_walls.append(right_point-center)
+                self.vectors_walls.append(top_point-center)
+                self.vectors_walls.append(center-bot_point)
+                self.points_walls.append(left_point)
+                self.points_walls.append(right_point)
+                self.points_walls.append(top_point)
+                self.points_walls.append(bot_point)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -180,6 +201,14 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
+                self.vectors_doors.append(center-left_point)
+                self.vectors_doors.append(right_point-center)
+                self.vectors_doors.append(top_point-center)
+                self.vectors_doors.append(center-bot_point)
+                self.points_doors.append(left_point)
+                self.points_doors.append(right_point)
+                self.points_doors.append(top_point)
+                self.points_doors.append(bot_point)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -235,5 +264,32 @@ class ObstacleConstraintsGenerator:
                         robot_norms.append(right_norm@robot_pos[:2])
                         constraints.append(right_norm@right_point)
 
+        self.robot_norms = np.array(np.abs(robot_norms))
+        self.constraints = np.array(np.abs(constraints)-r)
+        self.robot_pos = [robot_pos[0], robot_pos[1]]
+        self.vectors_walls = np.array(self.vectors_walls)/1
+        self.vectors_doors = np.array(self.vectors_doors)/1
+        self.points_walls = np.array(self.points_walls)
+        self.points_doors = np.array(self.points_doors)
 
-        return np.array(np.abs(robot_norms)), np.array(np.abs(constraints)-r)
+        # TODO:
+            # Also output normal vectors
+            # Add furnitures
+
+        return self.robot_norms, self.constraints
+
+    def display(self) -> None:
+        print('plotting')
+        fig, ax = plt.subplots(figsize=(12, 7))
+        ax.scatter(self.robot_pos[0], self.robot_pos[1], s=10, c='red')
+        for point, vec in zip(self.points_walls, self.vectors_walls):
+            ax.arrow(point[0], point[1], vec[0], vec[1])
+            ax.scatter(point[0], point[1], s = 10, c = 'green')
+        
+        # for point, vec in zip(self.points_doors, self.vectors_doors):
+        #     ax.arrow(point[0], point[1], vec[0], vec[1], color='red')
+        #     ax.scatter(point[0], point[1], s = 10, c = 'green')
+
+        ax.set_ylim([-4.5, 4.5])
+        ax.set_xlim([-9, 6.5])
+        plt.show()

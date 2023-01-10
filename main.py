@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from model import Model
@@ -33,7 +35,6 @@ def plot_2d(lines, boxes):
     plt.show()
 
 if __name__ == "__main__":
-
     show_warnings = False
     warning_flag = "default" if show_warnings else "ignore"
     with warnings.catch_warnings():
@@ -50,7 +51,7 @@ if __name__ == "__main__":
         action = np.zeros(env.n())
         action[2] = 0.5
 
-        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        start_pos = robots[0].set_initial_pos(-7, -3)
         ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
         is_open = {
@@ -73,7 +74,7 @@ if __name__ == "__main__":
 
         # Target position of the robot
         waypoint = np.array([0, -2])        
-        waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
+        waypoints = np.array([[0, -2]])
 
         # Follow a path set by waypoints
         robots[0].follow_path(env=env, house=house, waypoints=waypoints)
