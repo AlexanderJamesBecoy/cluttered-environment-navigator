@@ -65,7 +65,7 @@ class Model(HolonomicRobot):
         # Get current x and y positions
         x = obs['joint_state']['position'][0]
         y = obs['joint_state']['position'][1]
-        rob, con = house.Obstacles.generateConstraintsCylinder([x, y], 5)
+        rob, con, _ = house.Obstacles.generateConstraintsCylinder([x, y], 5)
         print("Rob: {}\nConstraints: {}\n".format(rob, con))
         vel = np.zeros(self._n) # action
         targetVector = np.array([waypoint[0] - x, waypoint[1] - y])

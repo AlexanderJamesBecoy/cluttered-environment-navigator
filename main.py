@@ -31,7 +31,7 @@ if __name__ == "__main__":
         action = np.zeros(env.n())
         action[2] = 0.5
 
-        start_pos = robots[0].set_initial_pos(-7, -3)
+        start_pos = robots[0].set_initial_pos(2, -3)
         ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
         is_open = {
