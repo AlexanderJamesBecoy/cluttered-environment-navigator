@@ -12,6 +12,26 @@ R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 R_RADIUS = 0.2
 R_HEIGHT = 0.3
 
+# Matplotlib
+def plot_2d(lines, boxes):
+    # Generate 2D plot of house
+    fig, ax = plt.subplots()
+    for line in lines:
+        x = np.array(line['coord'])[:,0]
+        y = np.array(line['coord'])[:,1]
+        if line['type'] == 'wall':
+            color = 'k'
+        else:
+            color = 'r'
+        ax.plot(x,y, color, linewidth=2)
+    for box in boxes:
+        ax.add_patch(
+            Rectangle((box['x'],box['y']),box['w'],box['h'],
+            facecolor='blue',
+            fill=True,
+        ))
+    plt.show()
+
 if __name__ == "__main__":
 
     show_warnings = False
@@ -34,35 +54,18 @@ if __name__ == "__main__":
         ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
         is_open = {
-            'bathroom':         False,
-            'outdoor':          False,
-            'top_bedroom':      False,
-            'bottom_bedroom':   False,
-            'kitchen':          False,
+            'bathroom':         True,
+            'outdoor':          True,
+            'top_bedroom':      True,
+            'bottom_bedroom':   True,
+            'kitchen':          True,
         }
         house.generate_walls()
         house.generate_doors(is_open)
         house.generate_furniture()
 
         lines, boxes = house.generate_plot_obstacles()
-
-        # Generate 2D plot of house
-        fig, ax = plt.subplots()
-        for line in lines:
-            x = np.array(line['coord'])[:,0]
-            y = np.array(line['coord'])[:,1]
-            if line['type'] == 'wall':
-                color = 'k'
-            else:
-                color = 'r'
-            ax.plot(x,y, color, linewidth=2)
-        for box in boxes:
-            ax.add_patch(
-                Rectangle((box['x'],box['y']),box['w'],box['h'],
-                facecolor='blue',
-                fill=True,
-            ))
-        plt.show()
+        plot_2d(lines, boxes)
 
         print(f"Length: {len(action)}")
         print(f"Initial observation : {ob}")

@@ -7,7 +7,7 @@ from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
 import os
 
 HEIGHT = 1.0
-WIDTH = 0.3
+WIDTH = 0.1
 SCALE = 1.3
 
 class House:
@@ -471,7 +471,7 @@ class Door:
     
     def draw_door(self):
         """
-        Draw a door into gym `env`. No further passing of arguments required.
+        Draw a door into gym `env`.
         """
         offset_x = 0.5*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
         offset_y = 0.5*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
@@ -500,8 +500,8 @@ class Door:
         """
         Return the line coordinates describing the door on XY-plane.
         """
-        x = self.pos[0] + self.dim_door[0]*np.cos(self.theta)*self.flipped
-        y = self.pos[1] + self.dim_door[0]*np.sin(self.theta)*self.flipped
+        x = self.pos[0] + self.dim_door[0]*np.cos(self.theta+self.open*self.flipped)*self.flipped
+        y = self.pos[1] + self.dim_door[0]*np.sin(self.theta+self.open*self.flipped)*self.flipped
         return [self.pos.tolist(), [x,y]]
 
 class Knob:
