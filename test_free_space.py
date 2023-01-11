@@ -160,9 +160,6 @@ for point in points:
   # print(ell_points)
   ax.scatter(ell_points[0], ell_points[1], ell_points[2], color='blue')
 
-
-
-
 plt.show()
 
 
