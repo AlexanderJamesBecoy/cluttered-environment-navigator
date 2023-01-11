@@ -5,8 +5,9 @@ from house import House
 
 class Planner:
 
-    def __init__(self, house: House):
+    def __init__(self, house: House, test_mode=False):
         self._house = house
+        self._test_mode = test_mode
 
     def plan_motion(self, start=[0.,0.], end=[0.,0.]):
         """
@@ -23,14 +24,18 @@ class Planner:
         assert_coordinates(end, 'End')
 
         # Manually-written motion planning per room
-        self._routes = [
-            # [[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]],
-            [[-9.25,-3.5], [-9.25,-3.0], [-7.5,-3.0], [-6.5,-1.5]],
-            [[-5.5,-1.5], [0.0,-1.5], [0.0, -2.5], [3.8, -3.5], [4.2,-4.5], [6.6,-4.2]],
-            [[6.4,-3.5], [6.0,-1.9]],
-        ]
+        if not self._test_mode:
+            self._routes = [
+                [[-9.25,-3.5], [-9.25,-3.0], [-7.5,-3.0], [-6.5,-1.5]],
+                [[-5.5,-1.5], [0.0,-1.5], [0.0, -2.5], [3.8, -3.5], [4.2,-4.5], [6.6,-4.2]],
+                [[6.4,-3.5], [6.0,-1.9]],
+            ]
+        else:
+            self._routes = [    # @TEST_MODE
+                [[-3.0,-3.0], [3.0,3.0]],
+            ]
 
-        # Manually-written doors' "openness"
+        # Manually-written doors' "openness" (ignore this)
         self._doors = [
             {
                 'bathroom':         False,
@@ -65,7 +70,8 @@ class Planner:
         return no_rooms
 
     def generate_waypoints(self, room):
-        # self._waypoints = [0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]
+        assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
+        assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
         return self._routes[room], self._doors[room]
 
     def generate_trajectory(self, start, end, type=None):
