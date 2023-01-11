@@ -59,7 +59,6 @@ class House:
         self._corners = [(-1.0*self._offset).tolist(), [max_width, max_length]]
         self._walls = []
         self._doors = {}
-        self._knobs = []
         self._furniture = []
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
 
@@ -68,22 +67,6 @@ class House:
         Update a new Gym environment.
         """
         self._env = env
-
-    # def add_wall(self, start_pos, end_pos, wall_thickness=0.1, wall_height=0.5):
-    #     """
-    #     Draw a wall segment into gym `env` from a starting position `start_pos` to a final position `end_pos`.
-    #     Default thickness `wall_thickness` and `wall_height` are 10 cm and 50 cm, respectively. They are modifiable.
-    #     """
-
-    #     vec = end_pos - start_pos       # Obtain a vector from the two points.
-    #     avg = (end_pos + start_pos)/2   # Obtain the average point between the two points, because
-    #                                     # gym `env` draws the shape centered.
-    #     theta = np.arctan2(*vec)        # Obtain the angle of the vector.
-    
-    #     dim = np.array([WIDTH, np.linalg.norm(vec), HEIGHT])    # Obtain the dimension of the wall.
-    #     pos = [[avg[0], avg[1], theta]]                         # Describe the position of the wall with average position and angle.
-    #     self.Obstacles.walls.append({'x': pos[0][0], 'y': pos[0][1], 'theta': pos[0][2], 'width': dim[0], 'length': dim[1], 'height': dim[2]}) # Add new obstacle pos to list
-    #     self._env.add_shapes(shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos)
 
     def generate_walls(self):
         """
@@ -437,7 +420,6 @@ class House:
         """
         Draw the doors.
         """
-        self._knobs = []
         self.Obstacles.doors = []
         self.Obstacles.knobs = []
         for room in self._doors:
@@ -454,11 +436,12 @@ class House:
 
     def generate_plot_obstacles(self):
         """
-        Generate lines indicating walls, doors and furniture for 2D plot.
-        @return lists of coordinates describing lines (walls and doors) and boxes (furniture).
+        Generate lines indicating walls, doors, door knobs and furniture for 2D plot.
+        @return lists of coordinates describing lines (walls and doors), points (door knobs) and boxes (furniture).
         """
         # Declare a list storing all the lines and boxes.
         lines = []
+        points = []
         boxes = []
 
         # Generate wall line coordinates
@@ -469,13 +452,17 @@ class House:
             }
             lines.append(line)
 
-        # Generate door line coordinates
+        # Generate door line coordinates and knob point coordinates
         for room in self._doors:
             line = {
                 'type': 'door',
                 'coord': self._doors[room].get_line()
             }
             lines.append(line)
+
+            for i in range(2):
+                point = self._doors[room].knobs[i].get_pos()[0:2]
+                points.append(point)
 
         # Generate furniture as box coordinates
         for furniture in self._furniture:
@@ -487,7 +474,7 @@ class House:
             }
             boxes.append(box)
         
-        return lines, boxes
+        return lines, points, boxes
 
 
 class Door:
@@ -513,7 +500,7 @@ class Door:
         self.pos_door = []
         self.pos_knob = []
 
-        if (is_flipped):    # If the door is mirrored, -1 will mirror the required poses.
+        if is_flipped:    # If the door is mirrored, -1 will mirror the required poses.
             self.flipped = -1
 
         knobs = []  # List of door knob objects.
@@ -523,7 +510,7 @@ class Door:
         Draw a door into gym `env`.
         """
         # If the door is open, an additive angle is added to rotate the door by additional 90 deg.
-        if (is_open):
+        if is_open:
             self.open = 0.5*np.pi
 
         offset_x = 0.5*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
@@ -550,10 +537,6 @@ class Door:
             knob = Knob(self.env, pos_knob[i])
             knob.draw_knob()
             self.knobs.append(knob)
-        # knob_1 = Knob(self.env, pos_knob_1)
-        # knob_2 = Knob(self.env, pos_knob_2)
-        # knob_1.draw_knob()
-        # knob_2.draw_knob()
 
     def get_line(self):
         """

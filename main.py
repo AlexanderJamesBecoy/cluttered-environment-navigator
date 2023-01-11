@@ -13,8 +13,6 @@ R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 R_RADIUS = 0.2
 R_HEIGHT = 0.3
 
-
-
 if __name__ == "__main__":
 
     show_warnings = False
@@ -35,18 +33,18 @@ if __name__ == "__main__":
         house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house)
-        open_doors, no_rooms = planner.plan_motion()
+        no_rooms = planner.plan_motion()
 
         # History
         history = []
 
         for room in range(no_rooms):
             # Generate environment
-            route = planner.generate_waypoints(room)
+            route, open = planner.generate_waypoints(room)
             init_joints = robots[0].set_initial_pos(route[0])
             ob = env.reset(pos=init_joints)
             house.draw_walls()
-            house.draw_doors(open_doors)
+            house.draw_doors(open)
             house.draw_furniture()
             planner.plot_plan_2d(route)
 

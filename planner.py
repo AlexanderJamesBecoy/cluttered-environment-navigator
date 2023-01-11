@@ -39,6 +39,20 @@ class Planner:
                 'bottom_bedroom':   False,
                 'kitchen':          False,
             },
+            {
+                'bathroom':         False,
+                'outdoor':          False,
+                'top_bedroom':      False,
+                'bottom_bedroom':   True,
+                'kitchen':          False,
+            },
+            {
+                'bathroom':         True,
+                'outdoor':          False,
+                'top_bedroom':      False,
+                'bottom_bedroom':   True,
+                'kitchen':          False,
+            },
         ]
 
         # Initiation of motion planning
@@ -48,11 +62,11 @@ class Planner:
         # Initialize starting position
         start_pos = self._routes[0][0]
 
-        return self._doors[0], no_rooms
+        return no_rooms
 
     def generate_waypoints(self, room):
         # self._waypoints = [0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]
-        return self._routes[room]
+        return self._routes[room], self._doors[room]
 
     def generate_trajectory(self, start, end, type=None):
         # TODO - Linear
@@ -61,7 +75,7 @@ class Planner:
 
     def plot_plan_2d(self, route):
         # Obtain the line and boxe coordinates of the walls, doors and furniture.
-        lines, boxes = self._house.generate_plot_obstacles()
+        lines, points, boxes = self._house.generate_plot_obstacles()
 
         # Generate 2D plot of house.
         fig, ax = plt.subplots()
@@ -73,8 +87,12 @@ class Planner:
             if line['type'] == 'wall':  # Color walls as black
                 color = 'black'
             else:                       # Color doors as green
-                color = 'lime'
+                color = 'yellow'
             ax.plot(x,y, color, linewidth=2)
+
+        # Plot the door knobs as points.
+        for point in points:
+            ax.plot(point[0], point[1], color='lime', marker='o', markersize=5)
 
         # Plot the furniture as boxes.
         for box in boxes:
