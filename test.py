@@ -109,6 +109,8 @@ from house import House
 from planner import Planner
 import warnings
 from MPC import MPController
+# from free_space import FreeSpace
+
 
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -182,10 +184,12 @@ if __name__ == "__main__":
         # robots[0].follow_path(env=env, house=house, waypoints=waypoints)
         MPC = MPController(robots[0])
         goal = np.array([-1, 0, 0, 3.14/2, 3.14/2, 3.14/2, 0])
+        action = np.zeros(env.n())
         while(1):
             ob, _, _, _ = env.step(action)
+            _, b, A = house.Obstacles.generateConstraintsCylinder(ob)
             state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
-            actionMPC = MPC.solve_MPC(state0, goal)
+            actionMPC = MPC.solve_MPC(state0, goal, A, b)
             action = np.zeros(env.n())
             for i, j in enumerate(robots[0]._dofs):
                 action[j] = actionMPC[i]
