@@ -110,6 +110,7 @@ from planner import Planner
 import warnings
 from MPC import MPController
 import time
+from free_space import FreeSpace
 
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -156,7 +157,7 @@ if __name__ == "__main__":
 
 
         # Generate environment
-        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        start_pos = robots[0].set_initial_pos([3.0, -2.0])
         ob = env.reset(pos=start_pos)
         is_open = {
             'bathroom':         True,
@@ -166,7 +167,7 @@ if __name__ == "__main__":
             'kitchen':          True,
         }
         house.generate_walls()
-        house.generate_doors(is_open)
+        house.generate_doors()
         # house.generate_furniture()
 
         lines, boxes = house.generate_plot_obstacles()
@@ -185,12 +186,17 @@ if __name__ == "__main__":
         goal = np.array([3, -5, 0, 0, 0, 0, 0])
         action = np.zeros(env.n())
         k = 0
+
+
         while(1):
             ob, _, _, _ = env.step(action)
             _, b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
             zero_col = np.zeros((b.size, 1))
             A = np.hstack((A, zero_col))
             state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+            # Cfree = FreeSpace(vertices, state0)
+            # A, b = Cfree.update_free_space(state0)
+
             actionMPC = MPC.solve_MPC(state0, goal, A, b)
             action = np.zeros(env.n())
             for i, j in enumerate(robots[0]._dofs):
