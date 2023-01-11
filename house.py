@@ -22,7 +22,7 @@ class House:
 
     def __init__(self, env, robot_dim: list, scale: float, test_mode=False):
         self._env = env
-
+        self.test_mode = test_mode
         if not test_mode:
             self._offset = np.array([7.0, 3.5])
             self._points = {
@@ -174,7 +174,7 @@ class House:
             'pos': pos,
             'dim': dim,
         }
-        self.Obstacles.furnitures.append({'x': pos[0][0], 'y': pos[0][1], 'width': dim[0], 'length': dim[1], 'height': dim[2]})
+        self.Obstacles.furnitures.append({'x': pos[0], 'y': pos[1], 'width': dim[0], 'length': dim[1], 'height': dim[2]})
         self._furniture.append(furniture)
 
     def generate_furniture(self):
@@ -444,6 +444,7 @@ class House:
         Add all door and door knobs to pos list and convert all lists to np arrays
         @param is_open - determines whether the door depending on the name is open or not.
         """
+        assert self.test_mode is False
         # assert test_mode is False
 
         self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_flipped=True)

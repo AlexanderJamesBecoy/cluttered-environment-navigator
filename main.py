@@ -28,6 +28,8 @@ if __name__ == "__main__":
         robots[0]._urdf.center
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
+        env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
         env = gym.make(
             "urdf-env-v0",
             dt=0.01, robots=robots, render=True
