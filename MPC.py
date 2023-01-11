@@ -15,8 +15,17 @@ weight_terminal_default_arm = 0.7
 
 # Geometry parameters
 offset_z = 0.3 + 0.1
-
-
+# Denavit-Hartenberg parameters
+d1 = 0.333
+d3 = 0.316
+d5 = 0.384
+d7 = 0.107
+a3 = 0.0825
+a4 = 0.0825
+a6 = 0.088
+# Sphere constraint clearance
+CLEARANCE1 = 0.3
+CLEARANCE2 = 0.3
 
 
 
@@ -103,10 +112,11 @@ class MPController:
         self.prev_solution_x = None # Initialization of previous solution (states)
         self.prev_solution_u = None # Initialization of previous solution (actions)
 
-    def solve_MPC(self, state0: np.ndarray, goal: np.ndarray) -> np.ndarray:
+    def solve_MPC(self, state0: np.ndarray, goal: np.ndarray, A, b) -> np.ndarray:
 
         self.opti.set_value(self.state0, state0) # Set the initial state parameters
         self.opti.set_value(self.goal, goal) # Set the goal state parameters
+        self.add_obstacle_avoidance_constraints(A, b) # Static obstacles avoidance
 
         # At time t=0 no solution has been computed yet, so we don't have any initial guess
         if self.prev_solution_u is None and self.prev_solution_x is None:
@@ -134,13 +144,12 @@ class MPController:
             self.cost += self.u[:, k].T @ self.weight_tracking @ self.u[:, k]
         self.cost += (self.x[:, self.N] - self.goal).T @ self.weight_tracking @ (self.x[:, self.N] - self.goal)
 
-    def add_constraints(self):
+    def add_constraints(self, A, b):
         """
         Methods to add the constraints:
         - limits on joints position (x: state)
         - limits on the joints velocity (u: input)
         - robot model kinematics/dynamics
-        - static ostable avoidance
         """
 
         # Limit constraints
@@ -159,29 +168,19 @@ class MPController:
             self.opti.subject_to(self.x[:, k+1] == self.x[:, k] + self.dt * self.u[:, k])
 
 
-        # Static obstacles avoidance: TODO
-        self.A
-        self.b
-
-        p1 = [x1, x2, d1 + offset_z]
-    
-
-        p2 = [x1 + a3*cos(q1)*cos(q2)*cos(q3)-a3*sin(q1)*sin(q3)-d3*cos(q1)*sin(q2), \
-            x2 + a3*cos(q1)*sin(q3)-d3*sin(q1)*sin(q2)+a3*cos(q2)*cos(q3)*sin(q1), \
-            offeset_z + d1 + d3*cos(q2)+a3*cos(q3)*sin(q2)]
+    def add_obstacle_avoidance_constraints(self, A, b):
 
         for k in range(self.N + 1):
 
             # First sphere
-            p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
-            self.opti.subject_to(self.A @ p1 <= self.b - CLEARANCE1)
+            p1 = np.array([self.x[0, k], self.x[1, k], d1 + offset_z])
+
+            self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
 
             # Second sphere
-            p2 = [self.x[0, k] + a3*cos(self.x[3, k]) - d3*sin(self.x[3, k]), \
-                self.x[1, k], offset_z + d1 + d3*cos(self.x[3, k]) + a3*sin()]
-        
+            p2 = np.array([self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
+                self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
+                d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])])
 
-
-
-        
+            self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
 

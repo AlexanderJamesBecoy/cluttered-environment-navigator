@@ -90,7 +90,7 @@ class Model(HolonomicRobot):
                 action, done = self.set_waypoint_action(house, point, self.state, ztol=ztol, rtol=rtol, atol=atol)
                 env.step(action)
                 self.update_state()
-                if (i%50 == 0):
-                    house.Obstacles.display()
+                # if (i%50 == 0):
+                #     house.Obstacles.display()
                 i += 1
 
