@@ -189,4 +189,3 @@ class MPController:
 
             for a_i, b_i in zip(A, b):
                 self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
-

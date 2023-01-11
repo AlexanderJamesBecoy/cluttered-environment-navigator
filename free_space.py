@@ -22,7 +22,7 @@ class Ellipsoid:
     def __init__(self, center: np.ndarray = np.zeros(SPACE_DIM), matrix_C: np.ndarray = np.eye(SPACE_DIM)) -> None:
         """
         Initialize the ellipsoid in two different forms:
-        ellipsoid = {x = C*y + d | ||d|| <= 1}
+        ellipsoid = {x = C*y + d | ||y|| <= 1}
         ellipsoid = {x | (x - d)^T * C^-1 * C^-T * (x - d)}
 
         Args:

@@ -111,7 +111,9 @@ import warnings
 from MPC import MPController
 import time
 # from free_space import FreeSpace
-
+from mpl_toolkits import mplot3d
+import numpy as np
+from scipy.spatial import ConvexHull
 
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -189,14 +191,34 @@ if __name__ == "__main__":
         k = 0
         while(1):
             ob, _, _, _ = env.step(action)
-            _, b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+            _, b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
             zero_col = np.zeros((b.size, 1))
             A = np.hstack((A, zero_col))
-            state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
-            actionMPC = MPC.solve_MPC(state0, goal, A, b)
-            action = np.zeros(env.n())
-            for i, j in enumerate(robots[0]._dofs):
-                action[j] = actionMPC[i]
+
+            # ---------------
+            print(vertices.shape)
+            fig = plt.figure()
+            ax = plt.axes(projection='3d')
+
+            for obj in vertices:
+
+                hull = ConvexHull(obj)
+
+                for simplex in hull.simplices:
+                    ax.plot(obj[simplex, 0], obj[simplex, 1], obj[simplex, 2], 'r-')
+
+                ax.scatter(obj[:,0], obj[:,1], obj[:,2])
+
+            plt.show()
+            # ---------------
+
+
+
+            # state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+            # actionMPC = MPC.solve_MPC(state0, goal, A, b)
+            # action = np.zeros(env.n())
+            # for i, j in enumerate(robots[0]._dofs):
+            #     action[j] = actionMPC[i]
 
             if (k%5 == 0):
                     print('A: \n{}\nb: \n{}\nRobot position: \n{}\n'.format(A, b, ob['robot_0']['joint_state']['position']))

@@ -87,19 +87,19 @@ ob6 = np.array([[-10, 10, 1], [10, 10, 1], [-10, 10, 0], [10, 10, 0],
 [-10, 10.1, 1], [10, 10.1, 1], [-10, 10.1, 0], [10, 10.1, 0]]) # wall 4
 
 
-ob7 = np.array([[3, 3, 0], [0, 3, 0], [3, 5, 0], [3, 3, 0.5]])
+ob7 = np.array([[3, 3, 0], [0, 3, 0], [3, 5, 0], [0, 5, 0], [3, 3, 0.5], [0, 3, 0.5], [3, 5, 0.5], [0, 5, 0.5]])
 ob8 = np.array([[-5, -5, 0], [0, -5, 0], [0, -2, 0], [-5, -2, 0], [-5, -5, 0.8], [0, -5, 0.8], [0, -2, 0.8], [-5, -2, 0.8]])
 
 obstacles = [ob1, ob2, ob3, ob4, ob5, ob6, ob7, ob8]
 
-# Cfree = FreeSpace(obstacles)
+Cfree = FreeSpace(obstacles)
 
-# start_time = time.time()
-# A, b = Cfree.update_free_space(np.array([0, 0, 0.5]))
-# end_time = time.time()
-# print(A)
-# print(b)
-# print("Time required: ", (end_time - start_time))
+start_time = time.time()
+A, b = Cfree.update_free_space(np.array([0, 0, 0.5]))
+end_time = time.time()
+print(A)
+print(b)
+print("Time required: ", (end_time - start_time))
 
 
 # ----------------------------- visualization -----------------------------
@@ -109,6 +109,8 @@ from mpl_toolkits import mplot3d
 import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import random
 
 
 # fig = plt.figure()
@@ -127,7 +129,7 @@ import matplotlib.pyplot as plt
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 
-for obj in obstacles[0:1]:
+for obj in obstacles:
 
   hull = ConvexHull(obj)
 
@@ -136,25 +138,30 @@ for obj in obstacles[0:1]:
 
   ax.scatter(obj[:,0], obj[:,1], obj[:,2])
 
+def random_points_on_sphere(r, n_points):
+    points = []
+    for _ in range(n_points):
+        azimuth = random.uniform(0, 2 * np.pi)
+        polar = random.uniform(0, np.pi)
+        x = r * np.sin(polar) * np.cos(azimuth)
+        y = r * np.sin(polar) * np.sin(azimuth)
+        z = r * np.cos(polar)
+        points.append((x, y, z))
+    return np.array(points)
+
+radius = 1
+n_points = 200
+points = random_points_on_sphere(radius, n_points)
+
+for point in points:
+  ell_points = Cfree.ellipsoid.C @ np.array(point) + Cfree.ellipsoid.d
+  print(ell_points)
+  ax.scatter(ell_points[0], ell_points[1], ell_points[2], color='blue')
+
+
+
+
 plt.show()
-
-
-
-# import matplotlib.pyplot as plt
-# import matplotlib
-# matplotlib.use("TkAgg")
-
-# def draw_line(x, y):
-#   # plot the points using matplotlib
-#   plt.plot(x, y)
- 
-#   # show the plot
-#   plt.show()
-
-# # test the function
-# x = [0, 1, 2, 3]
-# y = [0, 1, 4, 9]
-# draw_line(x, y)
 
 
 
