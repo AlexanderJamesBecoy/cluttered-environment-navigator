@@ -5,6 +5,8 @@ from free_space import FreeSpace
 import cvxpy as cp
 import time
 
+print(cp.installed_solvers())
+
 # ----------------------------- various tests -----------------------------
 
 # print("Solvers cvxpy: ", cp.installed_solvers())
@@ -155,13 +157,12 @@ points = random_points_on_sphere(radius, n_points)
 
 for point in points:
   ell_points = Cfree.ellipsoid.C @ np.array(point) + Cfree.ellipsoid.d
-  print(ell_points)
+  # print(ell_points)
   ax.scatter(ell_points[0], ell_points[1], ell_points[2], color='blue')
 
 
 
 
 plt.show()
-
 
 

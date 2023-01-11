@@ -110,10 +110,6 @@ from planner import Planner
 import warnings
 from MPC import MPController
 import time
-# from free_space import FreeSpace
-from mpl_toolkits import mplot3d
-import numpy as np
-from scipy.spatial import ConvexHull
 
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -186,7 +182,7 @@ if __name__ == "__main__":
         # Follow a path set by waypoints
         # robots[0].follow_path(env=env, house=house, waypoints=waypoints)
         MPC = MPController(robots[0])
-        goal = np.array([3, 2, 0, 3.14/2, 3.14/2, 3.14/2, 0])
+        goal = np.array([3, -5, 0, 0, 0, 0, 0])
         action = np.zeros(env.n())
         k = 0
         while(1):
@@ -194,35 +190,15 @@ if __name__ == "__main__":
             _, b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
             zero_col = np.zeros((b.size, 1))
             A = np.hstack((A, zero_col))
+            state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+            actionMPC = MPC.solve_MPC(state0, goal, A, b)
+            action = np.zeros(env.n())
+            for i, j in enumerate(robots[0]._dofs):
+                action[j] = actionMPC[i]
 
-            # ---------------
-            print(vertices.shape)
-            fig = plt.figure()
-            ax = plt.axes(projection='3d')
-
-            for obj in vertices:
-
-                hull = ConvexHull(obj)
-
-                for simplex in hull.simplices:
-                    ax.plot(obj[simplex, 0], obj[simplex, 1], obj[simplex, 2], 'r-')
-
-                ax.scatter(obj[:,0], obj[:,1], obj[:,2])
-
-            plt.show()
-            # ---------------
-
-
-
-            # state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
-            # actionMPC = MPC.solve_MPC(state0, goal, A, b)
-            # action = np.zeros(env.n())
-            # for i, j in enumerate(robots[0]._dofs):
-            #     action[j] = actionMPC[i]
-
-            if (k%5 == 0):
-                    print('A: \n{}\nb: \n{}\nRobot position: \n{}\n'.format(A, b, ob['robot_0']['joint_state']['position']))
-                    house.Obstacles.display()
-            k += 1
+            # if (k%5 == 0):
+            #         print('A: \n{}\nb: \n{}\nRobot position: \n{}\n'.format(A, b, ob['robot_0']['joint_state']['position']))
+            #         house.Obstacles.display()
+            # k += 1
 
         env.close()

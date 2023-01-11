@@ -147,7 +147,10 @@ class FreeSpace:
         for ai, bi in zip(self.A, self.b):
             constraints += [cp.norm(C @ ai) + ai @ d <= bi]
         prob = cp.Problem(objective, constraints)
-        prob.solve()
+        if "MOSEK" in cp.installed_solvers():
+            prob.solve(solver=cp.MOSEK)
+        else:
+            prob.solve()
         # print("Solution: ", C.value, d.value)
 
         # Update the ellipsoid parameters
