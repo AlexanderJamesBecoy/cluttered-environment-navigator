@@ -48,9 +48,15 @@ class House:
             'V': np.array([4.0,3.0]),   # Wall vertex.
             'W': np.array([12.0,1.0]),  # Wall vertex / Door hinge to the bathroom.
         }
+
+        max_width = 0.0
+        max_length = 0.0
         for x in self._points:  # Center the points around the origin.
             self._points[x] = (self._points[x] - self._offset)*SCALE
+            max_width = self._points[x][0] if self._points[x][0] > max_width else max_width
+            max_length = self._points[x][1] if self._points[x][1] > max_length else max_length
 
+        self._corners = [(-1.0*self._offset).tolist(), [max_width, max_length]]
         self._doors = {}
         self._furniture = []
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
