@@ -29,8 +29,8 @@ class Model(HolonomicRobot):
 
         super().__init__(-1, self._urdf, mode=mode)
 
-    def set_initial_pos(self, x, y):
-        return np.array([x,y,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.], dtype=np.float32)
+    def set_initial_pos(self, pos):
+        return np.array([pos[0],pos[1],0.,0.,0.,0.,0.,0.,0.,0.,0.,0.], dtype=np.float32)
 
     def act(self, joints):
         return self.dofs[joints]

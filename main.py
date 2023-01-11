@@ -9,31 +9,12 @@ from house import House
 from planner import Planner
 import warnings
 
+TEST_MODE = True # Boolean to initialize test mode to test the MPC
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
 R_RADIUS = 0.2
 R_HEIGHT = 0.3
-
-# Matplotlib
-def plot_2d(lines, boxes):
-    # Generate 2D plot of house
-    fig, ax = plt.subplots()
-    for line in lines:
-        x = np.array(line['coord'])[:,0]
-        y = np.array(line['coord'])[:,1]
-        if line['type'] == 'wall':
-            color = 'k'
-        else:
-            color = 'r'
-        ax.plot(x,y, color, linewidth=2)
-    for box in boxes:
-        ax.add_patch(
-            Rectangle((box['x'],box['y']),box['w'],box['h'],
-            facecolor='blue',
-            fill=True,
-        ))
-    plt.show()
 
 if __name__ == "__main__":
     show_warnings = False
@@ -45,38 +26,28 @@ if __name__ == "__main__":
         robot_dim = np.array([R_HEIGHT, R_RADIUS])
         robots = [Model(dim=robot_dim),]
         robots[0]._urdf.center
-        env = gym.make(
-            "urdf-env-v0",
-            dt=0.01, robots=robots, render=True
-        )
-        house = House(env, robot_dim=robot_dim, scale=R_SCALE)
-
-
-        # Generate environment
-        start_pos = robots[0].set_initial_pos(3.0,-2.0)
-        ob = env.reset(pos=start_pos)
-        is_open = {
-            'bathroom':         True,
-            'outdoor':          True,
-            'top_bedroom':      True,
-            'bottom_bedroom':   True,
-            'kitchen':          True,
-        }
+        env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
         house.generate_walls()
-        house.generate_doors(is_open)
+        # house.generate_doors()
         house.generate_furniture()
+        planner = Planner(house=house, test_mode=TEST_MODE)
+        no_rooms = planner.plan_motion()
 
-        lines, boxes = house.generate_plot_obstacles()
-        plot_2d(lines, boxes)
+        # History
+        history = []
 
-        # print(f"Length: {len(action)}")
-        # print(f"Initial observation : {ob}")
-        # history = []
+        for room in range(no_rooms):
+            # Generate environment
+            route, open = planner.generate_waypoints(room)
+            init_joints = robots[0].set_initial_pos(route[0])
+            ob = env.reset(pos=init_joints)
+            house.draw_walls()
+            # house.draw_doors(open)
+            house.draw_furniture()
+            planner.plot_plan_2d(route)
 
-        # Target position of the robot  
-        waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
-
-        # Follow a path set by waypoints
-        robots[0].follow_path(env=env, house=house, waypoints=waypoints)
+            # Follow a path set by waypoints   z
+            robots[0].follow_path(env=env, house=house, waypoints=route)
 
         env.close()
