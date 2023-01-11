@@ -166,6 +166,7 @@ class House:
             'pos': pos[0],
             'dim': dim,
         }
+        self.Obstacles.furnitures.append({'x': pos[0][0], 'y': pos[0][1], 'width': dim[0], 'length': dim[1], 'height': dim[2]})
         self._furniture.append(furniture)
 
     def generate_furniture(self):
@@ -398,6 +399,7 @@ class House:
         )
         ### Bathroom
 
+        # ADD Furnitures ABOVE THIS LINE!
         for furniture in self._furniture:
         # Add all furniture in `self._furniture` dictionary into the Gym environment.
             # self._env.add_obstacle(self._furniture[furniture])

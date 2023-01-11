@@ -9,6 +9,7 @@ class ObstacleConstraintsGenerator:
     def __init__(self, robot_dim: list, scale: float) -> None:
         self.walls = []
         self.doors = []
+        self.furnitures = []
         self.knobs = []
         self.robot_dim = robot_dim*scale # to be used to construct constraints later
         self.robot_norms = []
