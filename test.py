@@ -168,7 +168,7 @@ if __name__ == "__main__":
         }
         house.generate_walls()
         house.generate_doors(is_open)
-        house.generate_furniture()
+        # house.generate_furniture()
 
         lines, boxes = house.generate_plot_obstacles()
         # plot_2d(lines, boxes)
@@ -183,14 +183,23 @@ if __name__ == "__main__":
         # Follow a path set by waypoints
         # robots[0].follow_path(env=env, house=house, waypoints=waypoints)
         MPC = MPController(robots[0])
-        goal = np.array([-1, 0, 0, 3.14/2, 3.14/2, 3.14/2, 0])
+        goal = np.array([3, 2, 0, 3.14/2, 3.14/2, 3.14/2, 0])
         action = np.zeros(env.n())
+        k = 0
         while(1):
             ob, _, _, _ = env.step(action)
-            _, b, A = house.Obstacles.generateConstraintsCylinder(ob)
+            _, b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+            zero_col = np.zeros((b.size, 1))
+            A = np.hstack((A, zero_col))
             state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
             actionMPC = MPC.solve_MPC(state0, goal, A, b)
             action = np.zeros(env.n())
             for i, j in enumerate(robots[0]._dofs):
                 action[j] = actionMPC[i]
+
+            if (k%5 == 0):
+                    print('A: \n{}\nb: \n{}\nRobot position: \n{}\n'.format(A, b, ob['robot_0']['joint_state']['position']))
+                    house.Obstacles.display()
+            k += 1
+
         env.close()

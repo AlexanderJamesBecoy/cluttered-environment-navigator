@@ -24,8 +24,8 @@ a3 = 0.0825
 a4 = 0.0825
 a6 = 0.088
 # Sphere constraint clearance
-CLEARANCE1 = 0.3
-CLEARANCE2 = 0.3
+CLEARANCE1 = 0.0
+CLEARANCE2 = 0.0
 
 
 
@@ -43,7 +43,7 @@ class MPController:
     weight_terminal_base: float = weight_terminal_default_base,
     weight_terminal_theta: float = weight_terminal_default_theta,
     weight_terminal_arm: float = weight_terminal_default_arm,
-    dt: float = 0.1, N: int = 10):
+    dt: float = 0.5, N: int = 5):
         """
         Constructor of the classe.
 
@@ -144,7 +144,7 @@ class MPController:
             self.cost += self.u[:, k].T @ self.weight_tracking @ self.u[:, k]
         self.cost += (self.x[:, self.N] - self.goal).T @ self.weight_tracking @ (self.x[:, self.N] - self.goal)
 
-    def add_constraints(self, A, b):
+    def add_constraints(self):
         """
         Methods to add the constraints:
         - limits on joints position (x: state)
@@ -173,14 +173,20 @@ class MPController:
         for k in range(self.N + 1):
 
             # First sphere
-            p1 = np.array([self.x[0, k], self.x[1, k], d1 + offset_z])
+            p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
+            # self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
 
-            self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
+
+            for a_i, b_i in zip(A, b):
+                self.opti.subject_to(a_i[0]*p1[0] + a_i[1]*p1[1] + a_i[2]*p1[2] <= b_i - CLEARANCE1)
 
             # Second sphere
-            p2 = np.array([self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
+            p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
                 self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
-                d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])])
+                d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
 
-            self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
+            # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
+
+            for a_i, b_i in zip(A, b):
+                self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
 

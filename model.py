@@ -66,7 +66,7 @@ class Model(HolonomicRobot):
         x = obs['joint_state']['position'][0]
         y = obs['joint_state']['position'][1]
         rob, con, norm = house.Obstacles.generateConstraintsCylinder([x, y], 5)
-        print("Rob: {}\nConstraints: {}\nNormals: {}\n".format(rob, con, norm))
+        # print("Rob: {}\nConstraints: {}\nNormals: {}\n".format(rob, con, norm))
         vel = np.zeros(self._n) # action
         targetVector = np.array([waypoint[0] - x, waypoint[1] - y])
 
@@ -90,7 +90,7 @@ class Model(HolonomicRobot):
                 action, done = self.set_waypoint_action(house, point, self.state, ztol=ztol, rtol=rtol, atol=atol)
                 env.step(action)
                 self.update_state()
-                # if (i%50 == 0):
-                #     house.Obstacles.display()
+                if (i%50 == 0):
+                    house.Obstacles.display()
                 i += 1
 
