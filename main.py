@@ -31,7 +31,7 @@ if __name__ == "__main__":
         # house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=TEST_MODE)
-        no_rooms = planner.plan_motion()
+        no_rooms = planner.plan_motion(start=[-2.0,-2.0], end=[2.0,2.0])
 
         # History
         history = []
