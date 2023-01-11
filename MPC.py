@@ -6,8 +6,8 @@ from model import Model
 weight_tracking_default_base = 5.0
 weight_tracking_default_theta = 2.0
 weight_tracking_default_arm = 0.7
-weight_input_default_base = 0.005 # 0.05
-weight_input_default_theta = 0.05
+weight_input_default_base = 0.0 # 0.05
+weight_input_default_theta = 0.0 # 0.05
 weight_input_default_arm = 5.02
 weight_terminal_default_base = 5.0
 weight_terminal_default_theta = 2.0
@@ -43,7 +43,7 @@ class MPController:
     weight_terminal_base: float = weight_terminal_default_base,
     weight_terminal_theta: float = weight_terminal_default_theta,
     weight_terminal_arm: float = weight_terminal_default_arm,
-    dt: float = 0.5, N: int = 5):
+    dt: float = 1, N: int = 5):
         """
         Constructor of the classe.
 
@@ -181,11 +181,11 @@ class MPController:
                 self.opti.subject_to(a_i[0]*p1[0] + a_i[1]*p1[1] + a_i[2]*p1[2] <= b_i - CLEARANCE1)
 
             # # Second sphere
-            # p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
-            #     self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
-            #     d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
+            p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
+                self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
+                d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
 
-            # # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
+            # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
 
-            # for a_i, b_i in zip(A, b):
-            #     self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
+            for a_i, b_i in zip(A, b):
+                self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
