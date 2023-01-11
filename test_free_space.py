@@ -104,19 +104,57 @@ obstacles = [ob1, ob2, ob3, ob4, ob5, ob6, ob7, ob8]
 
 # ----------------------------- visualization -----------------------------
 
+
+from mpl_toolkits import mplot3d
+import numpy as np
+from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 
-def draw_line(x, y):
-  # plot the points using matplotlib
-  plt.plot(x, y)
- 
-  # show the plot
-  plt.show()
 
-# test the function
-x = [0, 1, 2, 3]
-y = [0, 1, 4, 9]
-draw_line(x, y)
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d') # create subplots
+# for i in range(5):
+    
+#     points = np.random.rand(30, 3)
+#     hull = ConvexHull(points)
+
+#     for simplex in hull.simplices:
+#         ax.plot(points[simplex, 0], points[simplex, 1], points[simplex, 2], 'r-')
+#     ax.scatter(points[:,0], points[:,1], points[:,2])
+
+# plt.show()
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+
+for obj in obstacles[0:1]:
+
+  hull = ConvexHull(obj)
+
+  for simplex in hull.simplices:
+      ax.plot(obj[simplex, 0], obj[simplex, 1], obj[simplex, 2], 'r-')
+
+  ax.scatter(obj[:,0], obj[:,1], obj[:,2])
+
+plt.show()
+
+
+
+# import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use("TkAgg")
+
+# def draw_line(x, y):
+#   # plot the points using matplotlib
+#   plt.plot(x, y)
+ 
+#   # show the plot
+#   plt.show()
+
+# # test the function
+# x = [0, 1, 2, 3]
+# y = [0, 1, 4, 9]
+# draw_line(x, y)
 
 
 
