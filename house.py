@@ -146,13 +146,10 @@ class House:
         Create a furniture in a shape of a cube. It will take the center position `pos`
         and the dimension `dim`.
         """
-        self._env.add_shapes(
-            shape_type="GEOM_BOX", dim=dim, mass=0, poses_2d=pos
-        )
         furniture = {
             'name': name,
             'urdf': None,
-            'pos': pos[0],
+            'pos': pos,
             'dim': dim,
         }
         self._furniture.append(furniture)
@@ -353,12 +350,12 @@ class House:
         ### Kitchen     # Missing urdf for these furniture
         self.add_furniture_box( # Counter, sink # TODO: into objects?
             name='kitchen_counter_sink',
-            pos=[[(self._points['E'][0].item()+self._points['F'][0].item())/2.0,self._points['E'][1].item()-0.4,0]],
+            pos=[(self._points['E'][0].item()+self._points['F'][0].item())/2.0,self._points['E'][1].item()-0.4,0],
             dim=np.array([np.abs(self._points['E'][0].item()-self._points['F'][0].item())-0.3, 0.6, 0.9]),
         )
         self.add_furniture_box( # Counter, oven
             name='kitchen_counter_oven',
-            pos=[[self._points['F'][0].item()-0.4,(self._points['F'][1].item()+self._points['G'][1].item())/2.0-0.3,0]],
+            pos=[self._points['F'][0].item()-0.4,(self._points['F'][1].item()+self._points['G'][1].item())/2.0-0.3,0],
             dim=np.array([0.6, np.abs(self._points['F'][1].item()-self._points['G'][1].item())-0.6, 0.9]),
         )
         # self.add_furniture(
@@ -372,17 +369,17 @@ class House:
         ### Bathroom    # Missing urdf for these furniture
         self.add_furniture_box( # Bathtub
             name='bathroom_bathtub',
-            pos=[[(self._points['S'][0].item()+self._points['H'][0].item())/2.0,self._points['S'][1].item()-0.45,0]],
+            pos=[(self._points['S'][0].item()+self._points['H'][0].item())/2.0,self._points['S'][1].item()-0.45,0],
             dim=np.array([np.abs(self._points['S'][0].item()-self._points['H'][0].item())-0.3, 0.8, 0.6]),
         )
         self.add_furniture_box( # Toilet, backside
             name='bathroom_toilet_back',
-            pos=[[self._points['T'][0].item()+0.3,self._points['T'][1].item()+1.2,0]],
+            pos=[self._points['T'][0].item()+0.3,self._points['T'][1].item()+1.2,0],
             dim=np.array([0.3, 0.45, 0.8]),
         )
         self.add_furniture_box( # Toilet, seat
             name='bathroom_toilet_seat',
-            pos=[[self._points['T'][0].item()+0.65,self._points['T'][1].item()+1.2,0]],
+            pos=[self._points['T'][0].item()+0.65,self._points['T'][1].item()+1.2,0],
             dim=np.array([0.4, 0.45, 0.4]),
         )
         ### Bathroom
@@ -396,6 +393,8 @@ class House:
             # self._env.add_obstacle(self._furniture[furniture])
             if furniture['urdf'] is not None:
                 self._env.add_obstacle(furniture['urdf'])
+            else:
+                self._env.add_shapes(shape_type="GEOM_BOX", dim=furniture['dim'], mass=0, poses_2d=[furniture['pos']])
 
     def add_door(self, room, pos, theta, is_flipped=False):
         """
