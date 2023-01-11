@@ -44,6 +44,27 @@ class ObstacleConstraintsGenerator:
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.doors, obstacles_name='doors')
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.furnitures, obstacles_name='furnitures')
 
+        self.constraints = np.array(self.constraints)
+        self.robot_pos = [robot_pos[0], robot_pos[1]]
+        self.normals = np.array(self.normals)
+
+        return self.constraints, self.normals
+
+    def computeNormalVector(self, p1: list[float, float], p2: list[float, float]) -> list[float, float]:
+        """
+            Returns the normal vector of the line defined by points p1 and p2.
+        """
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+
+        return [dy, -dx], [-dy, dx] # [dy, -dx] -> left and top side of obstacle, [-dy, dx] -> right and lower side of the obstacle
+    
+    def getVertices(self):
+        self.vertices = []
+        self.computeVertices(obstacles=self.walls, obstacles_name='walls')
+        self.computeVertices(obstacles=self.doors, obstacles_name='doors')
+        self.computeVertices(obstacles=self.furnitures, obstacles_name='furnitures')
+
         space_trt = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), 1]
         space_tlt = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), 1]
         space_blt = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), 1]
@@ -57,53 +78,23 @@ class ObstacleConstraintsGenerator:
         space_vertices = [space_trb, space_tlb, space_blb, space_brb, space_trt, space_tlt, space_blt, space_brt]
         self.vertices.append(space_vertices)
 
-        self.constraints = np.array(self.constraints)
-        self.robot_pos = [robot_pos[0], robot_pos[1]]
-        self.normals = np.array(self.normals)
-        self.vertices = np.array(self.vertices)
+        return np.array(self.vertices)
 
-        return self.constraints, self.normals, self.vertices
-
-    def computeNormalVector(self, p1: list[float, float], p2: list[float, float]) -> list[float, float]:
-        """
-            Returns the normal vector of the line defined by points p1 and p2.
-        """
-        dx = p2[0] - p1[0]
-        dy = p2[1] - p1[1]
-
-        return [dy, -dx], [-dy, dx] # [dy, -dx] -> left and top side of obstacle, [-dy, dx] -> right and lower side of the obstacle
-    
-    def generateConstraints(self, robot_pos, vision_range, obstacles, obstacles_name: str) -> np.ndarray:
-        vectors = []
-        points = []
+    def computeVertices(self, obstacles, obstacles_name: str):
+        # Compute all vertices
         for obstacle in obstacles:
-            # Set center of the obstacle
-            center = np.array([obstacle['x'], obstacle['y']])
-            dist = np.linalg.norm(center - np.array([robot_pos[0], robot_pos[1]]))
-
-            # Compute all vertices
             if obstacles_name=='furnitures' or np.abs(obstacle['theta']) != np.pi/2:
-                    # Compute the corner locations and center of each side
-                    left_point = [center[0] - obstacle['width']/2, center[1]]
-                    top_point = [center[0], center[1] + obstacle['length']/2]
-                    right_point = [center[0] + obstacle['width']/2, center[1]]
-                    bot_point = [center[0], center[1] - obstacle['length']/2]
+                # Compute the corner locations and center of each side
+                tl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
+                tr = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
+                br = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
+                bl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
 
-                    tl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
-                    tr = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
-                    br = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
-                    bl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
-
-                    tlt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['height']]
-                    trt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['height']]
-                    brt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
-                    blt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
+                tlt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['height']]
+                trt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['height']]
+                brt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
+                blt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
             else:
-                left_point = [center[0] - obstacle['length']/2, center[1]]
-                top_point = [center[0], center[1] + obstacle['width']/2]
-                right_point = [center[0] + obstacle['length']/2, center[1]]
-                bot_point = [center[0], center[1] - obstacle['width']/2]
-
                 tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
                 tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0] 
                 br = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0] 
@@ -118,6 +109,14 @@ class ObstacleConstraintsGenerator:
             vertices = [tl, tr, br, bl, tlt, trt, brt, blt]
             self.vertices.append(vertices)
 
+    def generateConstraints(self, robot_pos, vision_range, obstacles, obstacles_name: str) -> np.ndarray:
+        vectors = []
+        points = []
+        for obstacle in obstacles:
+            # Set center of the obstacle
+            center = np.array([obstacle['x'], obstacle['y']])
+            dist = np.linalg.norm(center - np.array([robot_pos[0], robot_pos[1]]))
+
             # Check if obstacle is out of range, can be improved by checking each side but takes more time
             if (dist > vision_range) or len(obstacles) == 0:
                 continue
@@ -125,11 +124,21 @@ class ObstacleConstraintsGenerator:
                 # obstacles were not rotated
                 if obstacles_name=='furnitures' or np.abs(obstacle['theta']) != np.pi/2:
                     # Compute the corner locations and center of each side
+                    tl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
+                    tr = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
+                    br = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
+                    bl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
+
                     left_point = [center[0] - obstacle['width']/2, center[1]]
                     top_point = [center[0], center[1] + obstacle['length']/2]
                     right_point = [center[0] + obstacle['width']/2, center[1]]
                     bot_point = [center[0], center[1] - obstacle['length']/2]
                 else:
+                    tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
+                    tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
+                    br = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0]
+                    bl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0]
+
                     left_point = [center[0] - obstacle['length']/2, center[1]]
                     top_point = [center[0], center[1] + obstacle['width']/2]
                     right_point = [center[0] + obstacle['length']/2, center[1]]

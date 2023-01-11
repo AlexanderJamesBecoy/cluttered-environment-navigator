@@ -53,9 +53,10 @@ if __name__ == "__main__":
             goal = np.array([3, 3, 0, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0
+            vertices = house.Obstacles.getVertices()
             while(1):
                 ob, _, _, _ = env.step(action)
-                b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+                b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
                 
                 zero_col = np.zeros((b.size, 1))
                 A = np.hstack((A, zero_col))
