@@ -109,8 +109,7 @@ from house import House
 from planner import Planner
 import warnings
 from MPC import MPController
-# from free_space import FreeSpace
-
+import time
 
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -183,12 +182,12 @@ if __name__ == "__main__":
         # Follow a path set by waypoints
         # robots[0].follow_path(env=env, house=house, waypoints=waypoints)
         MPC = MPController(robots[0])
-        goal = np.array([3, 2, 0, 3.14/2, 3.14/2, 3.14/2, 0])
+        goal = np.array([3, -5, 0, 0, 0, 0, 0])
         action = np.zeros(env.n())
         k = 0
         while(1):
             ob, _, _, _ = env.step(action)
-            _, b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+            _, b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
             zero_col = np.zeros((b.size, 1))
             A = np.hstack((A, zero_col))
             state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
@@ -197,9 +196,9 @@ if __name__ == "__main__":
             for i, j in enumerate(robots[0]._dofs):
                 action[j] = actionMPC[i]
 
-            if (k%5 == 0):
-                    print('A: \n{}\nb: \n{}\nRobot position: \n{}\n'.format(A, b, ob['robot_0']['joint_state']['position']))
-                    house.Obstacles.display()
-            k += 1
+            # if (k%5 == 0):
+            #         print('A: \n{}\nb: \n{}\nRobot position: \n{}\n'.format(A, b, ob['robot_0']['joint_state']['position']))
+            #         house.Obstacles.display()
+            # k += 1
 
         env.close()
