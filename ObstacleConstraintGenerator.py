@@ -106,6 +106,7 @@ class ObstacleConstraintsGenerator:
                 if robot_pos[0] < left_point[0]: # left side of obstacle
                     robot_norms.append(left_norm@robot_pos[:2])
                     constraints.append(left_norm@left_point)
+                    print('left')
                     self.vectors_walls.append(center-left_point)
                     self.points_walls.append(left_point)
                     self.normals.append(left_norm)
