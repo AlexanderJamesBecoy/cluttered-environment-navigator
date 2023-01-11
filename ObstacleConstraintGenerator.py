@@ -38,12 +38,26 @@ class ObstacleConstraintsGenerator:
         """
         self.normals = []
         self.vertices = []
+        self.constraints = []
 
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.walls, obstacles_name='walls')
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.doors, obstacles_name='doors')
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.furnitures, obstacles_name='furnitures')
 
-        self.constraints = np.array(np.abs(self.constraints))
+        space_trt = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), 1]
+        space_tlt = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), 1]
+        space_blt = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), 1]
+        space_brt = [np.max(self.vertices[:][0]), np.min(self.vertices[:][1]), 1]
+
+        space_trb = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), 0]
+        space_tlb = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), 0]
+        space_blb = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), 0]
+        space_brb = [np.max(self.vertices[:][0]), np.min(self.vertices[:][1]), 0]
+
+        space_vertices = [space_trb, space_tlb, space_blb, space_brb, space_trt, space_tlt, space_blt, space_brt]
+        self.vertices.append(space_vertices)
+
+        self.constraints = np.array(self.constraints)
         self.robot_pos = [robot_pos[0], robot_pos[1]]
         self.normals = np.array(self.normals)
         self.vertices = np.array(self.vertices)
@@ -66,13 +80,9 @@ class ObstacleConstraintsGenerator:
             # Set center of the obstacle
             center = np.array([obstacle['x'], obstacle['y']])
             dist = np.linalg.norm(center - np.array([robot_pos[0], robot_pos[1]]))
-            # Check if obstacle is out of range, can be improved by checking each side but takes more time
-            if (dist > vision_range):
-                continue
-            else:
-                print(obstacle)
-                # obstacles were not rotated
-                if np.abs(obstacle['theta']) != np.pi/2 or obstacles_name=='furnitures':
+
+            # Compute all vertices
+            if obstacles_name=='furnitures' or np.abs(obstacle['theta']) != np.pi/2:
                     # Compute the corner locations and center of each side
                     left_point = [center[0] - obstacle['width']/2, center[1]]
                     top_point = [center[0], center[1] + obstacle['length']/2]
@@ -88,21 +98,43 @@ class ObstacleConstraintsGenerator:
                     trt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['height']]
                     brt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
                     blt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
+            else:
+                left_point = [center[0] - obstacle['length']/2, center[1]]
+                top_point = [center[0], center[1] + obstacle['width']/2]
+                right_point = [center[0] + obstacle['length']/2, center[1]]
+                bot_point = [center[0], center[1] - obstacle['width']/2]
+
+                tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
+                tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0] 
+                br = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0] 
+                bl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0] 
+
+                tlt = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, obstacle['height']]
+                trt = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, obstacle['height']]
+                brt = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, obstacle['height']]
+                blt = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, obstacle['height']]
+            
+            # Append vertices
+            vertices = [tl, tr, br, bl, tlt, trt, brt, blt]
+            self.vertices.append(vertices)
+
+            # Check if obstacle is out of range, can be improved by checking each side but takes more time
+            if (dist > vision_range) or len(obstacles) == 0:
+                continue
+            else:
+                # obstacles were not rotated
+                if obstacles_name=='furnitures' or np.abs(obstacle['theta']) != np.pi/2:
+                    # Compute the corner locations and center of each side
+                    left_point = [center[0] - obstacle['width']/2, center[1]]
+                    top_point = [center[0], center[1] + obstacle['length']/2]
+                    right_point = [center[0] + obstacle['width']/2, center[1]]
+                    bot_point = [center[0], center[1] - obstacle['length']/2]
                 else:
                     left_point = [center[0] - obstacle['length']/2, center[1]]
                     top_point = [center[0], center[1] + obstacle['width']/2]
                     right_point = [center[0] + obstacle['length']/2, center[1]]
                     bot_point = [center[0], center[1] - obstacle['width']/2]
 
-                    tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
-                    tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0] 
-                    br = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0] 
-                    bl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0] 
-
-                    tlt = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, obstacle['height']]
-                    trt = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, obstacle['height']]
-                    brt = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, obstacle['height']]
-                    blt = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, obstacle['height']]
                 # Compute the normal vectors on each side
                 left_norm = self.computeNormalVector(bl, tl)[0]
                 top_norm = self.computeNormalVector(tl, tr)[0]
@@ -114,10 +146,6 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
-
-                # Append vertices
-                vertices = [tl, tr, br, bl, tlt, trt, brt, blt]
-                self.vertices.append(vertices)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -190,19 +218,27 @@ class ObstacleConstraintsGenerator:
                         self.normals.append(right_norm)
                 
                 self.vectors[obstacles_name] = vectors
-                self.points[obstacles_name] = points
+                self.points[obstacles_name] = points        
 
     def display(self) -> None:
         print('plotting')
         fig, ax = plt.subplots(figsize=(12, 7))
         ax.scatter(self.robot_pos[0], self.robot_pos[1], s=10, c='red')
-        for point, vec in zip(self.points_walls, self.vectors_walls):
-            ax.arrow(point[0], point[1], vec[0], vec[1])
-            ax.scatter(point[0], point[1], s = 10, c = 'green')
+
+        if 'walls' in self.points.keys():
+            for point, vec in zip(self.points['walls'], self.vectors['walls']):
+                ax.arrow(point[0], point[1], vec[0], vec[1])
+                ax.scatter(point[0], point[1], s = 10, c = 'green')
         
-        for point, vec in zip(self.points_doors, self.vectors_doors):
-            ax.arrow(point[0], point[1], vec[0], vec[1], color='red')
-            ax.scatter(point[0], point[1], s = 10, c = 'green')
+        if 'doors' in self.points.keys():
+            for point, vec in zip(self.points['doors'], self.vectors['doors']):
+                ax.arrow(point[0], point[1], vec[0], vec[1], color='red')
+                ax.scatter(point[0], point[1], s = 10, c = 'green')
+
+        if 'furnitures' in self.points.keys():
+            for point, vec in zip(self.points['furnitures'], self.vectors['furnitures']):
+                ax.arrow(point[0], point[1], vec[0], vec[1], color='blue')
+                ax.scatter(point[0], point[1], s = 10, c = 'green')
 
         ax.set_ylim([-4.5, 4.5])
         ax.set_xlim([-9, 6.5])

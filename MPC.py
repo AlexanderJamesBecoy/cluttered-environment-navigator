@@ -24,8 +24,8 @@ a3 = 0.0825
 a4 = 0.0825
 a6 = 0.088
 # Sphere constraint clearance
-CLEARANCE1 = 0.0
-CLEARANCE2 = 0.0
+CLEARANCE1 = 0.3
+CLEARANCE2 = 0.3
 
 
 

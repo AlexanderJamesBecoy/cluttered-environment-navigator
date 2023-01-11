@@ -55,8 +55,8 @@ if __name__ == "__main__":
             k = 0
             while(1):
                 ob, _, _, _ = env.step(action)
-                _, b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
-                print("A: \n{}\nb: \n{}\n".format(A, b))
+                b, A, vertices = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+                
                 zero_col = np.zeros((b.size, 1))
                 A = np.hstack((A, zero_col))
                 state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
@@ -66,6 +66,8 @@ if __name__ == "__main__":
                     action[j] = actionMPC[i]
 
                 if (k%50 == 0):
+                    print("A: \n{}\nb: \n{}\n".format(A@np.array([state0[0], state0[1], 0]), b))
+                    print(vertices[-1])
                     house.Obstacles.display()
                 k += 1
         env.close()
