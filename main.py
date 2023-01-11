@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from model import Model
 from house import House
+from planner import Planner
 import warnings
 
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     with warnings.catch_warnings():
         warnings.filterwarnings(warning_flag)
 
+        # Main init
         robot_dim = np.array([R_HEIGHT, R_RADIUS])
         robots = [Model(dim=robot_dim),]
         robots[0]._urdf.center
@@ -47,13 +49,12 @@ if __name__ == "__main__":
             "urdf-env-v0",
             dt=0.01, robots=robots, render=True
         )
-
-        action = np.zeros(env.n())
-        action[2] = 0.5
-
-        start_pos = robots[0].set_initial_pos(-7, -3)
-        ob = env.reset(pos=start_pos)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
+
+
+        # Generate environment
+        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        ob = env.reset(pos=start_pos)
         is_open = {
             'bathroom':         True,
             'outdoor':          True,
@@ -68,13 +69,12 @@ if __name__ == "__main__":
         lines, boxes = house.generate_plot_obstacles()
         plot_2d(lines, boxes)
 
-        print(f"Length: {len(action)}")
-        print(f"Initial observation : {ob}")
-        history = []
+        # print(f"Length: {len(action)}")
+        # print(f"Initial observation : {ob}")
+        # history = []
 
-        # Target position of the robot
-        waypoint = np.array([0, -2])        
-        waypoints = np.array([[0, -2]])
+        # Target position of the robot  
+        waypoints = np.array([[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]])
 
         # Follow a path set by waypoints
         robots[0].follow_path(env=env, house=house, waypoints=waypoints)
