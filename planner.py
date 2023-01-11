@@ -2,12 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from house import House
-from model import Model
 
 class Planner:
 
-    def __init__(self, robot: Model, house: House):
-        self._robot = robot
+    def __init__(self, house: House):
         self._house = house
 
     def plan_motion(self, start=[0.,0.], end=[0.,0.]):
@@ -28,6 +26,8 @@ class Planner:
         self._routes = [
             # [[0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]],
             [[-9.25,-3.5], [-9.25,-3.0], [-7.5,-3.0], [-6.5,-1.5]],
+            [[-5.5,-1.5], [0.0,-1.5], [0.0, -2.5], [3.8, -3.5], [4.2,-4.5], [6.6,-4.2]],
+            [[6.4,-3.5], [6.0,-1.9]],
         ]
 
         # Manually-written doors' "openness"
@@ -42,25 +42,24 @@ class Planner:
         ]
 
         # Initiation of motion planning
-        self._done = False
+        no_rooms = len(self._routes)
+        self.mp_done = False
 
         # Initialize starting position
         start_pos = self._routes[0][0]
-        return start_pos, self._doors[0]
 
-    def generate_waypoints(self):
+        return self._doors[0], no_rooms
+
+    def generate_waypoints(self, room):
         # self._waypoints = [0, -2], [2, -2], [2, 0], [0, 0], [0, 10], [10, 10], [-10, -10]
-        return self._routes[0]
+        return self._routes[room]
 
     def generate_trajectory(self, start, end, type=None):
         # TODO - Linear
         # TODO - Circular
         pass
 
-    def plot_plan_2d(self):
-        route = self._routes[0]
-        print(route)
-
+    def plot_plan_2d(self, route):
         # Obtain the line and boxe coordinates of the walls, doors and furniture.
         lines, boxes = self._house.generate_plot_obstacles()
 

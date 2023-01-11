@@ -31,23 +31,26 @@ if __name__ == "__main__":
             dt=0.01, robots=robots, render=True
         )
         house = House(env, robot_dim=robot_dim, scale=R_SCALE)
-        planner = Planner(robot=robots[0], house=house)
+        house.generate_walls()
+        house.generate_doors()
+        house.generate_furniture()
+        planner = Planner(house=house)
+        open_doors, no_rooms = planner.plan_motion()
 
         # History
         history = []
 
-        # Generate environment
-        # start_pos = robots[0].set_initial_pos(3.0,-2.0)
-        start_pos, open_doors = planner.plan_motion()
-        init_joints = robots[0].set_initial_pos(start_pos)
-        ob = env.reset(pos=init_joints)
-        house.generate_walls()
-        house.generate_doors(open_doors)
-        house.generate_furniture()
-        planner.plot_plan_2d()
+        for room in range(no_rooms):
+            # Generate environment
+            route = planner.generate_waypoints(room)
+            init_joints = robots[0].set_initial_pos(route[0])
+            ob = env.reset(pos=init_joints)
+            house.draw_walls()
+            house.draw_doors(open_doors)
+            house.draw_furniture()
+            planner.plot_plan_2d(route)
 
-        # Follow a path set by waypoints
-        waypoints = planner.generate_waypoints()
-        robots[0].follow_path(env=env, house=house, waypoints=waypoints)
+            # Follow a path set by waypoints   z
+            robots[0].follow_path(env=env, house=house, waypoints=route)
 
         env.close()
