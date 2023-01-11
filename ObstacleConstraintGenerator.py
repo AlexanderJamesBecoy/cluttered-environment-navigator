@@ -20,6 +20,7 @@ class ObstacleConstraintsGenerator:
         self.points_doors = []
         self.points_walls = []
         self.normals = []
+        self.vertices = []
 
     def computeNormalVector(self, p1: list[float, float], p2: list[float, float]) -> list[float, float]:
         """
@@ -56,6 +57,7 @@ class ObstacleConstraintsGenerator:
         self.vectors_doors = []
         self.points_doors = []
         self.normals = []
+        self.vertices = []
 
         for wall in self.walls:
             # Set center of the obstacle
@@ -73,21 +75,30 @@ class ObstacleConstraintsGenerator:
                     right_point = [center[0] + wall['width']/2, center[1]]
                     bot_point = [center[0], center[1] - wall['length']/2]
 
-                    tl = [wall['x'] - wall['width']/2, wall['y'] + wall['length']/2]
-                    tr = [wall['x'] + wall['width']/2, wall['y'] + wall['length']/2]
-                    br = [wall['x'] + wall['width']/2, wall['y'] - wall['length']/2]
-                    bl = [wall['x'] - wall['width']/2, wall['y'] - wall['length']/2]
+                    tl = [wall['x'] - wall['width']/2, wall['y'] + wall['length']/2, 0]
+                    tr = [wall['x'] + wall['width']/2, wall['y'] + wall['length']/2, 0]
+                    br = [wall['x'] + wall['width']/2, wall['y'] - wall['length']/2, 0]
+                    bl = [wall['x'] - wall['width']/2, wall['y'] - wall['length']/2, 0]
+
+                    tlt = [wall['x'] - wall['width']/2, wall['y'] + wall['length']/2, wall['height']]
+                    trt = [wall['x'] + wall['width']/2, wall['y'] + wall['length']/2, wall['height']]
+                    brt = [wall['x'] + wall['width']/2, wall['y'] - wall['length']/2, wall['height']]
+                    blt = [wall['x'] - wall['width']/2, wall['y'] - wall['length']/2, wall['height']]
                 else:
                     left_point = [center[0] - wall['length']/2, center[1]]
                     top_point = [center[0], center[1] + wall['width']/2]
                     right_point = [center[0] + wall['length']/2, center[1]]
                     bot_point = [center[0], center[1] - wall['width']/2]
 
-                    tl = [wall['x'] - wall['length']/2, wall['y'] + wall['width']/2]
-                    tr = [wall['x'] + wall['length']/2, wall['y'] + wall['width']/2]
-                    br = [wall['x'] + wall['length']/2, wall['y'] - wall['width']/2]
-                    bl = [wall['x'] - wall['length']/2, wall['y'] - wall['width']/2]
-                
+                    tl = [wall['x'] - wall['length']/2, wall['y'] + wall['width']/2, 0]
+                    tr = [wall['x'] + wall['length']/2, wall['y'] + wall['width']/2, 0] 
+                    br = [wall['x'] + wall['length']/2, wall['y'] - wall['width']/2, 0] 
+                    bl = [wall['x'] - wall['length']/2, wall['y'] - wall['width']/2, 0] 
+
+                    tlt = [wall['x'] - wall['length']/2, wall['y'] + wall['width']/2, wall['height']]
+                    trt = [wall['x'] + wall['length']/2, wall['y'] + wall['width']/2, wall['height']]
+                    brt = [wall['x'] + wall['length']/2, wall['y'] - wall['width']/2, wall['height']]
+                    blt = [wall['x'] - wall['length']/2, wall['y'] - wall['width']/2, wall['height']]
                 # Compute the normal vectors on each side
                 left_norm = self.computeNormalVector(bl, tl)[0]
                 top_norm = self.computeNormalVector(tl, tr)[0]
@@ -99,6 +110,10 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
+
+                # Append vertices
+                vertices = [tl, tr, br, bl, tlt, trt, brt, blt]
+                self.vertices.append(vertices)
 
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
@@ -203,27 +218,37 @@ class ObstacleConstraintsGenerator:
                 continue
             else:
                 # walls were not rotated
-                if np.abs(door['theta']) == np.pi/2:
+                if np.abs(door['theta']) != np.pi/2:
                     # Compute the corner locations and center of each side
-                    left_point = [center[0] - wall['width']/2, center[1]]
-                    top_point = [center[0], center[1] + wall['length']/2]
-                    right_point = [center[0] + wall['width']/2, center[1]]
-                    bot_point = [center[0], center[1] - wall['length']/2]
+                    left_point = [center[0] - door['width']/2, center[1]]
+                    top_point = [center[0], center[1] + door['length']/2]
+                    right_point = [center[0] + door['width']/2, center[1]]
+                    bot_point = [center[0], center[1] - door['length']/2]
 
-                    tl = [wall['x'] - wall['width']/2, wall['y'] + wall['length']/2]
-                    tr = [wall['x'] + wall['width']/2, wall['y'] + wall['length']/2]
-                    br = [wall['x'] + wall['width']/2, wall['y'] - wall['length']/2]
-                    bl = [wall['x'] - wall['width']/2, wall['y'] - wall['length']/2]
+                    tl = [door['x'] - door['width']/2, door['y'] + door['length']/2, 0]
+                    tr = [door['x'] + door['width']/2, door['y'] + door['length']/2, 0]
+                    br = [door['x'] + door['width']/2, door['y'] - door['length']/2, 0]
+                    bl = [door['x'] - door['width']/2, door['y'] - door['length']/2, 0]
+
+                    tlt = [door['x'] - door['width']/2, door['y'] + door['length']/2, door['height']]
+                    trt = [door['x'] + door['width']/2, door['y'] + door['length']/2, door['height']]
+                    brt = [door['x'] + door['width']/2, door['y'] - door['length']/2, door['height']]
+                    blt = [door['x'] - door['width']/2, door['y'] - door['length']/2, door['height']]
                 else:
-                    left_point = [center[0] - wall['length']/2, center[1]]
-                    top_point = [center[0], center[1] + wall['width']/2]
-                    right_point = [center[0] + wall['length']/2, center[1]]
-                    bot_point = [center[0], center[1] - wall['width']/2]
+                    left_point = [center[0] - door['length']/2, center[1]]
+                    top_point = [center[0], center[1] + door['width']/2]
+                    right_point = [center[0] + door['length']/2, center[1]]
+                    bot_point = [center[0], center[1] - door['width']/2]
 
-                    tl = [wall['x'] - wall['length']/2, wall['y'] + wall['width']/2]
-                    tr = [wall['x'] + wall['length']/2, wall['y'] + wall['width']/2]
-                    br = [wall['x'] + wall['length']/2, wall['y'] - wall['width']/2]
-                    bl = [wall['x'] - wall['length']/2, wall['y'] - wall['width']/2]
+                    tl = [door['x'] - door['length']/2, door['y'] + door['width']/2, 0]
+                    tr = [door['x'] + door['length']/2, door['y'] + door['width']/2, 0] 
+                    br = [door['x'] + door['length']/2, door['y'] - door['width']/2, 0] 
+                    bl = [door['x'] - door['length']/2, door['y'] - door['width']/2, 0] 
+
+                    tlt = [door['x'] - door['length']/2, door['y'] + door['width']/2, door['height']]
+                    trt = [door['x'] + door['length']/2, door['y'] + door['width']/2, door['height']]
+                    brt = [door['x'] + door['length']/2, door['y'] - door['width']/2, door['height']]
+                    blt = [door['x'] - door['length']/2, door['y'] - door['width']/2, door['height']]
                 
                 # Compute the normal vectors on each side
                 left_norm = self.computeNormalVector(bl, tl)[0]
@@ -236,7 +261,8 @@ class ObstacleConstraintsGenerator:
                 top_norm = top_norm / np.linalg.norm(top_norm)
                 right_norm = right_norm / np.linalg.norm(right_norm)
                 bot_norm = bot_norm / np.linalg.norm(bot_norm)
-                
+                vertices = [tl, tr, br, bl, tlt, trt, brt, blt]
+                self.vertices.append(vertices)
                 # Check which constraints should be active, append those to the final lists
                 # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
                 if robot_pos[0] < left_point[0]: # left side of obstacle
@@ -340,12 +366,13 @@ class ObstacleConstraintsGenerator:
         self.points_walls = np.array(self.points_walls)
         self.points_doors = np.array(self.points_doors)
         self.normals = np.array(self.normals)
+        self.vertices = np.array(self.vertices)
 
         # TODO:
             # Also output normal vectors
             # Add furnitures
 
-        return self.robot_norms, self.constraints, self.normals
+        return self.robot_norms, self.constraints, self.normals, self.vertices
 
     def display(self) -> None:
         print('plotting')
