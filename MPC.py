@@ -13,6 +13,12 @@ weight_terminal_default_base = 5.0
 weight_terminal_default_theta = 2.0
 weight_terminal_default_arm = 0.7
 
+# Geometry parameters
+offset_z = 0.3 + 0.1
+
+
+
+
 
 class MPController:
     """
@@ -28,7 +34,7 @@ class MPController:
     weight_terminal_base: float = weight_terminal_default_base,
     weight_terminal_theta: float = weight_terminal_default_theta,
     weight_terminal_arm: float = weight_terminal_default_arm,
-    dt: float = 0.01, N: int = 5):
+    dt: float = 0.1, N: int = 10):
         """
         Constructor of the classe.
 
@@ -91,19 +97,27 @@ class MPController:
         self.add_objective_function()
         self.opti.minimize(self.cost)
         self.add_constraints()
-        p_opts = dict(print_time=True, verbose=False)
+        p_opts = dict(print_time=False, verbose=False)
         s_opts = dict(print_level=0)
         self.opti.solver('ipopt', p_opts, s_opts) # Set solver 'ipopt'
-        # solution = self.opti.solve() # Solve the problem
-        # print(solution.value(self.u[:, 0]))
-
-        # return solution.value(self.u[:, 0])
+        self.prev_solution_x = None # Initialization of previous solution (states)
+        self.prev_solution_u = None # Initialization of previous solution (actions)
 
     def solve_MPC(self, state0: np.ndarray, goal: np.ndarray) -> np.ndarray:
 
-        self.opti.set_value(self.state0, state0)
-        self.opti.set_value(self.goal, goal)
-        solution = self.opti.solve() # Solve the problem
+        self.opti.set_value(self.state0, state0) # Set the initial state parameters
+        self.opti.set_value(self.goal, goal) # Set the goal state parameters
+
+        # At time t=0 no solution has been computed yet, so we don't have any initial guess
+        if self.prev_solution_u is None and self.prev_solution_x is None:
+            solution = self.opti.solve() # Solve the problem
+        else:
+            self.opti.set_initial(self.x, self.prev_solution_x)
+            self.opti.set_initial(self.u, self.prev_solution_u)
+            solution = self.opti.solve() # Solve the problem
+        
+        self.prev_solution_x = solution.value(self.x)
+        self.prev_solution_u = solution.value(self.u)
 
         return solution.value(self.u[:, 0])
 
@@ -128,6 +142,8 @@ class MPController:
         - robot model kinematics/dynamics
         - static ostable avoidance
         """
+
+        # Limit constraints
         self.opti.subject_to(self.x[:, 0] == self.state0) # Initial state constraint
         for k in range(self.N): # Iterate over all the steps of the prediction horizon
             self.opti.subject_to(self.lower_limit_state <= self.x[:, k])
@@ -139,7 +155,33 @@ class MPController:
         self.opti.subject_to(self.x[:, self.N] <= self.upper_limit_state)
 
         # Robot model constraints
-
         for k in range(self.N):
             self.opti.subject_to(self.x[:, k+1] == self.x[:, k] + self.dt * self.u[:, k])
+
+
         # Static obstacles avoidance: TODO
+        self.A
+        self.b
+
+        p1 = [x1, x2, d1 + offset_z]
+    
+
+        p2 = [x1 + a3*cos(q1)*cos(q2)*cos(q3)-a3*sin(q1)*sin(q3)-d3*cos(q1)*sin(q2), \
+            x2 + a3*cos(q1)*sin(q3)-d3*sin(q1)*sin(q2)+a3*cos(q2)*cos(q3)*sin(q1), \
+            offeset_z + d1 + d3*cos(q2)+a3*cos(q3)*sin(q2)]
+
+        for k in range(self.N + 1):
+
+            # First sphere
+            p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
+            self.opti.subject_to(self.A @ p1 <= self.b - CLEARANCE1)
+
+            # Second sphere
+            p2 = [self.x[0, k] + a3*cos(self.x[3, k]) - d3*sin(self.x[3, k]), \
+                self.x[1, k], offset_z + d1 + d3*cos(self.x[3, k]) + a3*sin()]
+        
+
+
+
+        
+
