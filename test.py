@@ -10,6 +10,7 @@ from planner import Planner
 import warnings
 from MPC import MPController
 from free_space import FreeSpace
+import time
 
 TEST_MODE = True # Boolean to initialize test mode to test the MPC
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
@@ -43,7 +44,8 @@ if __name__ == "__main__":
             # Generate environment
             route, open = planner.generate_waypoints(room)
             init_joints = robots[0].set_initial_pos(route[0])
-            ob = env.reset(pos=init_joints)
+            start_pos = robots[0].set_initial_pos([-1, -1.])
+            ob = env.reset(pos=start_pos)
             house.draw_walls()
             # house.draw_doors(open)
             house.draw_furniture()
@@ -51,7 +53,7 @@ if __name__ == "__main__":
 
             # Follow a path set by waypoints   z
             MPC = MPController(robots[0])
-            goal = np.array([0, 1, 0, 0, 0, 0, 0])
+            goal = np.array([0, 1.5, 0, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0
             while(1):
@@ -70,7 +72,7 @@ if __name__ == "__main__":
                 # obstacles = []
                 # for vertex in vertices:
                 #     obstacles.append(np.array(vertex))
-                if (k%50 == 0):
+                if (k%10 == 0):
 
                     floor = np.array([[4, 4, 0], [-4, 4, 0], [-4, -4, 0], [4, -4, 0], [4, 4, -0.1], [-4, 4, -0.1], [-4, -4, -0.1], [4, -4, -0.1]])
                     ceiling = np.array([[4, 4, 1.5], [-4, 4, 1.5], [-4, -4, 1.5], [4, -4, 1.5], [4, 4, 1.6], [-4, 4, 1.6], [-4, -4, 1.6], [4, -4, 1.6]])
@@ -86,8 +88,11 @@ if __name__ == "__main__":
                     A, b = Cfree.update_free_space(p0)
                 k += 1
 
-
+                start_time = time.time()
                 actionMPC = MPC.solve_MPC(state0, goal, A, b)
+                end_time = time.time()
+                print("MPC computation time: ", end_time - start_time)
+
                 action = np.zeros(env.n())
                 for i, j in enumerate(robots[0]._dofs):
                     action[j] = actionMPC[i]

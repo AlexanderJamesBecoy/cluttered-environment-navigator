@@ -24,8 +24,11 @@ a3 = 0.0825
 a4 = 0.0825
 a6 = 0.088
 # Sphere constraint clearance
-CLEARANCE1 = 0.0
-CLEARANCE2 = 0.0
+CLEARANCE1 = 0.5
+CLEARANCE2 = 0.5
+# MPC parameters
+DT = 1
+STEPS = 5
 
 
 
@@ -43,7 +46,7 @@ class MPController:
     weight_terminal_base: float = weight_terminal_default_base,
     weight_terminal_theta: float = weight_terminal_default_theta,
     weight_terminal_arm: float = weight_terminal_default_arm,
-    dt: float = 1, N: int = 5):
+    dt: float = DT, N: int = STEPS):
         """
         Constructor of the classe.
 
@@ -114,6 +117,8 @@ class MPController:
 
     def solve_MPC(self, state0: np.ndarray, goal: np.ndarray, A, b) -> np.ndarray:
 
+        # Re-initialize the solver
+        self.FHOCP()
         self.opti.set_value(self.state0, state0) # Set the initial state parameters
         self.opti.set_value(self.goal, goal) # Set the goal state parameters
         self.add_obstacle_avoidance_constraints(A, b) # Static obstacles avoidance
