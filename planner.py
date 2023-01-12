@@ -72,13 +72,28 @@ class Planner:
         for line in self._lines:
             obstacle = Obstacle(line['coord'][0], line['coord'][1])
             obstacle_list.append(obstacle)
+        for box in self._boxes:
+            x1 = box['x']
+            y1 = box['y']
+            x2 = x1 + box['w']
+            y2 = y1 + box['h']
+            obstacle_left = Obstacle([x1,y1], [x1,y2])
+            obstacle_right = Obstacle([x2,y1], [x2,y2])
+            obstacle_up = Obstacle([x1,y1], [x2,y1])
+            obstacle_down = Obstacle([x1,y2], [x2,y2])
+            obstacle_list.append(obstacle_left)
+            obstacle_list.append(obstacle_right)
+            obstacle_list.append(obstacle_up)
+            obstacle_list.append(obstacle_down)
         
         house_dim = [MIN_CORNER, MAX_CORNER]
-        self.rrt = RRT(self._routes[0][0], self._routes[-1][-1], dim=house_dim, obstacle_list=obstacle_list, step_size=0.1, max_iter=5000)
-        self.path = self.rrt.find_path()
+        self.rrt = RRT(self._routes[0][0], self._routes[-1][-1], dim=house_dim, obstacle_list=obstacle_list, step_size=0.5, max_iter=5000)
+        self.path, path_cost = self.rrt.find_path()
+        if self.path is not None:
+            self._routes[0] = self.path
         print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
         print(f'Vertices: {len(self.rrt.vertices)}')
-        print(f'Vertices: {np.array(self.rrt.vertices)}')
+        print(f'Cost: {path_cost}')
 
         return no_rooms
 
@@ -122,26 +137,27 @@ class Planner:
             ))
 
         # Plot the route as red vectors.
-        for i in range(1,len(route)):
-            x1 = route[i-1]
-            x2 = route[i]
-            magnitude_x = x2[0] - x1[0]
-            magnitude_y = x2[1] - x1[1]
-            theta = np.arctan2(magnitude_y, magnitude_x)
-            ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='r', head_width=0.2, width=0.05)
+        # for i in range(1,len(route)):
+        #     x1 = route[i-1]
+        #     x2 = route[i]
+        #     magnitude_x = x2[0] - x1[0]
+        #     magnitude_y = x2[1] - x1[1]
+        #     theta = np.arctan2(magnitude_y, magnitude_x)
+        #     ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='r', head_width=0.2, width=0.05)
 
         # Plot RRT
         for vertex in self.rrt.vertices:
-            ax.plot(vertex[0], vertex[1], color='orange', marker='o', markersize=5)
+            ax.plot(vertex[0], vertex[1], color='orange', marker='o', markersize=1)
         
-        if len(self.path) > 0:
+        # Plot the route as red vectors.
+        if self.path is not None:
             for i in range(1,len(self.path)):
                 x1 = self.path[i-1]
                 x2 = self.path[i]
                 magnitude_x = x2[0] - x1[0]
                 magnitude_y = x2[1] - x1[1]
                 theta = np.arctan2(magnitude_y, magnitude_x)
-                ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='b', head_width=0.2, width=0.05)
+                ax.arrow(x1[0], x1[1], magnitude_x-0.05*np.cos(theta), magnitude_y-0.05*np.sin(theta), color='r', head_width=0.05, width=0.01)
         
         plt.show()
 
@@ -185,16 +201,14 @@ class RRT:
         min_dist = float('inf')
         nearest_point = None
         for vertex in self.vertices:
-            print(f'min_dist {min_dist}')
             dist = self.get_distance(point, vertex[0:2])
-            print(f'dist: {dist}')
             if dist < min_dist:
                 nearest_point = vertex
                 min_dist = dist
         
         return nearest_point
     
-    def steer(self, random_point, nearest_point):
+    def expand(self, random_point, nearest_point):
         """
         Helper function: steer
         """
@@ -202,10 +216,15 @@ class RRT:
         #     return None
         new_point = random_point
         if self.get_distance(nearest_point, random_point) > self.step_size:
-            new_point = np.array([
-                nearest_point[0] + self.step_size*(random_point[0]-nearest_point[0])/self.get_distance(nearest_point,random_point),
-                nearest_point[1] + self.step_size*(random_point[1]-nearest_point[1])/self.get_distance(nearest_point,random_point)
-            ])
+            # new_point = np.array([
+            #     nearest_point[0] + self.step_size*(random_point[0]-nearest_point[0])/self.get_distance(nearest_point,random_point),
+            #     nearest_point[1] + self.step_size*(random_point[1]-nearest_point[1])/self.get_distance(nearest_point,random_point)
+            # ])
+            theta = np.random.uniform(-np.pi, np.pi)
+            new_point = [
+                nearest_point[0] + self.step_size*np.cos(theta),
+                nearest_point[1] + self.step_size*np.sin(theta),
+            ]
         return new_point
 
     def find_nearest_cluster(self, new_point):
@@ -223,24 +242,28 @@ class RRT:
         """
         Helper function
         """
-        min_cost = float(np.infty)
         chosen_parent = nearest_point
+        min_cost = nearest_point[3] + self.get_distance(new_point, nearest_point[0:2])
         for vertex in self.vertices:
             if vertex not in nearest_points:
                 continue
 
-            cost = self.get_distance(vertex[0:2], new_point[0:2])
-            parent = vertex[2]
-            while parent in nearest_points:
+            # cost = self.get_distance(vertex[0:2], new_point[0:2])
+            parent = vertex
+            next_parent = parent[2]
+            nearest_parents = np.array(nearest_points)[:,0:2].tolist()
+            while next_parent in nearest_parents:
+                parent = nearest_points[[nearest_parents[i] == parent[2] for i in range(len(nearest_parents))]]
                 next_parent = parent[2]
                 print(f'parent: {parent}')
                 print(f'next parent: {next_parent}')
-                cost += self.get_distance(parent[0:2], next_parent[0:2])
-                parent = next_parent
+                # if next_parent in nearest_points:
+                #     parent = next_parent
 
+            cost = parent[3] + self.get_distance(parent[0:2], new_point)
             if cost < min_cost:
                 min_cost = cost
-                parent = vertex
+                chosen_parent = parent
             
         return chosen_parent[0:2], min_cost
 
@@ -249,15 +272,6 @@ class RRT:
         """
         Helper function
         """
-        # for vertex in self.vertices:
-        #     if self.in_collision(vertex[0:2], new_point[0:2]): # Ignore if the edge between the vertex and new node is not obstacle-free.
-        #         continue
-        #     if vertex[2] is None: # Ignore if the vertex is the starting node.
-        #         continue
-        #     cur_cost = self.dist(vertex[0:2], new_point[0:2]) + vertex[3]
-        #     if cur_cost < vertex[3]:
-        #         vertex[2] = 
-        #         vertex[3] = cur_cost
         for i in range(len(self.vertices)):
             vertex = self.vertices[i]
             if vertex not in nearest_points: # Ignore vertices not in cluster
@@ -278,11 +292,11 @@ class RRT:
         min_x, min_y = self.dim[0]
         max_x, max_y = self.dim[1]
         self.vertices = [[self.start[0], self.start[1], None, 0.0]]
-        while len(self.vertices) < self.max_iter:
+        for i in range(self.max_iter):
             rand_point = np.array([np.random.uniform(min_x, max_x), np.random.uniform(min_y, max_y)])
             nearest_point = self.find_nearest(rand_point)
-            print(f'nearest point: {nearest_point}')
-            new_point = self.steer(rand_point, nearest_point[0:2])
+            print(f'nearest point to point {i}: {nearest_point}')
+            new_point = self.expand(rand_point, nearest_point[0:2])
 
             if self.in_collision(new_point, nearest_point[0:2]):
                 continue
@@ -291,19 +305,25 @@ class RRT:
             parent, cost = self.choose_parent(new_point, nearest_point, nearest_points)
             new_point = [new_point[0], new_point[1], parent, cost]
             self.vertices.append(new_point)
-            self.rewire(nearest_point, nearest_points)
+            # self.rewire(nearest_point, nearest_points)
             
             if self.get_heuristic(new_point) < self.step_size:
-                tree = [new_point]
+                path = [self.goal, new_point]
                 cur_point = new_point
                 while cur_point[0:2] != self.start:
+                    dead_end = True
                     for vertex in self.vertices:
                         if vertex[0:2] == cur_point[2]:
+                            print(f'Append vertex: {vertex[0:2]}, length: {len(path)}')
                             cur_point = vertex
-                            tree.append(vertex[0:2])
+                            path.append(vertex[0:2])
+                            dead_end = False
                             break
-                return [tree[i][0:2] for i in range(len(tree))]
-        return None
+                    if dead_end:
+                        break
+                if cur_point[0:2] == self.start:
+                    return [path[i][0:2] for i in range(len(path))][::-1], new_point[3]
+        return None, 0
 
 # class RRTStar:
 #     def __init__(self, start, goal, dim, obstacle_list, rrt_star = True, step_size = 0.5, max_iter = 100):
