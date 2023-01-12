@@ -14,6 +14,7 @@ import time
 
 TEST_MODE = True # Boolean to initialize test mode to test the MPC
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
+METHOD = 'Elli'
 
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
 R_RADIUS = 0.2
@@ -56,14 +57,20 @@ if __name__ == "__main__":
             goal = np.array([3, 3, 0, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0
-            vertices = house.Obstacles.getVertices()
+            vertices = np.array(house.Obstacles.getVertices())
+            print(vertices)
             while(1):
                 ob, _, _, _ = env.step(action)
-                b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
-                # print("A: \n{}\nb: \n{}\nsides: \n{}\n".format(A, b, house.Obstacles.sides))
-                zero_col = np.zeros((b.size, 1))
-                A = np.hstack((A, zero_col))
-                state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+                if METHOD == 'Normals':
+                    b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+                    # print("A: \n{}\nb: \n{}\nsides: \n{}\n".format(A, b, house.Obstacles.sides))
+                    zero_col = np.zeros((b.size, 1))
+                    A = np.hstack((A, zero_col))
+                    state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+                else:
+                    C_free = FreeSpace(vertices, [-3, -3, 0])
+                    A, b = C_free.update_free_space([ob['robot_0']['joint_state']['position'][0], ob['robot_0']['joint_state']['position'][1], ob['robot_0']['joint_state']['position'][2]])
+                    state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
 
                 start_time = time.time()
                 actionMPC = MPC.solve_MPC(state0, goal, A, b)
