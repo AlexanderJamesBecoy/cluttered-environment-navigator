@@ -65,32 +65,33 @@ class ObstacleConstraintsGenerator:
         self.computeVertices(obstacles=self.walls, obstacles_name='walls')
         self.computeVertices(obstacles=self.doors, obstacles_name='doors')
         self.computeVertices(obstacles=self.furnitures, obstacles_name='furnitures')
+        self.vertices = np.array(self.vertices)
+        floor_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), -0.1]
+        floor_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), -0.1]
+        floor_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), -0.1]
+        floor_brt = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), -0.1]
 
-        floor_trt = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), -0.1]
-        floor_tlt = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), -0.1]
-        floor_blt = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), -0.1]
-        floor_brt = [np.max(self.vertices[:][0]), np.min(self.vertices[:][1]), -0.1]
+        floor_trb = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 0]
+        floor_tlb = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 0]
+        floor_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 0]
+        floor_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 0]
 
-        floor_trb = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), 0]
-        floor_tlb = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), 0]
-        floor_blb = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), 0]
-        floor_brb = [np.max(self.vertices[:][0]), np.min(self.vertices[:][1]), 0]
+        ceiling_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1.1]
+        ceiling_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1.1]
+        ceiling_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1.1]
+        ceiling_brt = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1.1]
 
-        ceiling_trt = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), 1.5+0.1]
-        ceiling_tlt = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), 1.5+0.1]
-        ceiling_blt = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), 1.5+0.1]
-        ceiling_brt = [np.max(self.vertices[:][0]), np.min(self.vertices[:][1]), 1.5+0.1]
-
-        ceiling_trb = [np.max(self.vertices[:][0]), np.max(self.vertices[:][1]), 1.5]
-        ceiling_tlb = [np.min(self.vertices[:][0]), np.max(self.vertices[:][1]), 1.5]
-        ceiling_blb = [np.min(self.vertices[:][0]), np.min(self.vertices[:][1]), 1.5]
-        ceiling_brb = [np.max(self.vertices[:][0]), np.min(self.vertices[:][1]), 1.5]
+        ceiling_trb = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1]
+        ceiling_tlb = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1]
+        ceiling_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1]
+        ceiling_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1]
 
         floor_vertices = [floor_trb, floor_tlb, floor_blb, floor_brb, floor_trt, floor_tlt, floor_blt, floor_brt]
         ceiling_vertices = [ceiling_trb, ceiling_tlb, ceiling_blb, ceiling_brb, ceiling_trt, ceiling_tlt, ceiling_blt, ceiling_brt]
+        self.vertices = list(self.vertices)
         self.vertices.append(floor_vertices)
         self.vertices.append(ceiling_vertices)
-
+        self.vertices = np.array(self.vertices)
         return np.array(self.vertices)
 
     def computeVertices(self, obstacles, obstacles_name: str):
@@ -257,6 +258,7 @@ class ObstacleConstraintsGenerator:
     def display(self) -> None:
         print('plotting')
         fig, ax = plt.subplots(figsize=(12, 7))
+        print(self.robot_pos)
         ax.scatter(self.robot_pos[0], self.robot_pos[1], s=10, c='red')
 
         if 'walls' in self.points.keys():
@@ -270,6 +272,7 @@ class ObstacleConstraintsGenerator:
                 ax.scatter(point[0], point[1], s = 10, c = 'green')
 
         if 'furnitures' in self.points.keys():
+            print("FURNITURES\n")
             for point, vec in zip(self.points['furnitures'], self.vectors['furnitures']):
                 ax.arrow(point[0], point[1], vec[0], vec[1], color='blue')
                 ax.scatter(point[0], point[1], s = 10, c = 'green')

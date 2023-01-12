@@ -15,6 +15,7 @@ import time
 TEST_MODE = True # Boolean to initialize test mode to test the MPC
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 METHOD = ''
+TOL = 1e-1
 
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
 R_RADIUS = 0.2
@@ -31,57 +32,63 @@ if __name__ == "__main__":
         robots = [Model(dim=robot_dim),]
         robots[0]._urdf.center
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
-        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=False)
         house.generate_walls()
         # house.generate_doors()
         house.generate_furniture()
-        planner = Planner(house=house, test_mode=TEST_MODE)
+        planner = Planner(house=house, test_mode=False)
         no_rooms = planner.plan_motion()
 
         # History
         history = []
 
-        for room in range(no_rooms):
-            # Generate environment
-            route, open = planner.generate_waypoints(room)
-            init_joints = robots[0].set_initial_pos(route[0])
-            start_pos = robots[0].set_initial_pos([-3, -3])
-            ob = env.reset(pos=start_pos)
-            house.draw_walls()
-            # house.draw_doors(open)
-            house.draw_furniture()
-            planner.plot_plan_2d(route)
+        # Generate environment
+        # route, open = planner.generate_waypoints(room)
+        # init_joints = robots[0].set_initial_pos(route[0])
+        start_pos = robots[0].set_initial_pos([3, -3])
+        ob = env.reset(pos=start_pos)
+        house.draw_walls()
+        # house.draw_doors(open)
+        house.draw_furniture()
+        # planner.plot_plan_2d(route)
 
-            # Follow a path set by waypoints   z
-            MPC = MPController(robots[0])
-            goal = np.array([3, 3, 0, 0, 0, 0, 0])
-            action = np.zeros(env.n())
-            k = 0
-            vertices = np.array(house.Obstacles.getVertices())
-            C_free = FreeSpace(vertices, [-3, -3, 0.4])
-            while(1):
-                ob, _, _, _ = env.step(action)
-                state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+        # Follow a path set by waypoints   z
+        MPC = MPController(robots[0])
+        goal = np.array([3, 2, 0, 0, 0, 0, 0])
+        action = np.zeros(env.n())
+        k = 0
+        vertices = np.array(house.Obstacles.getVertices())
+        print("All vertices: \n{}\n".format(vertices))
+        print(vertices)
+        C_free = FreeSpace(vertices, [3, -3, 0.4])
+
+        while(1):
+            ob, _, _, _ = env.step(action)
+            state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
+
+            if METHOD == 'Normals':
+                b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+                # print("A: \n{}\nb: \n{}\nsides: \n{}\n".format(A, b, house.Obstacles.sides))
+                zero_col = np.zeros((b.size, 1))
+                A = np.hstack((A, zero_col))
                 
-                if METHOD == 'Normals':
-                    b, A = house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
-                    # print("A: \n{}\nb: \n{}\nsides: \n{}\n".format(A, b, house.Obstacles.sides))
-                    zero_col = np.zeros((b.size, 1))
-                    A = np.hstack((A, zero_col))
-                    
-                else:
-                    if (k%10 == 0):
-                        p0 = [state0[0], state0[1], 0.4]
-                        A, b = C_free.update_free_space(p0)
-                        # C_free.show_elli(vertices, p0)
-                k += 1
+            else:
+                house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
+                house.Obstacles.display()
+                p0 = [state0[0], state0[1], 0.4]
+                if (k%100 == 0):
+                    A, b = C_free.update_free_space(p0)
+
+                if np.allclose(p0, [3, 3, 0.4], rtol=TOL, atol=TOL):
+                    C_free.show_elli(vertices, p0)
+                    print("\nFINISHED!\n")
+                    break
+
                 #start_time = time.time()
                 try:
                     actionMPC = MPC.solve_MPC(state0, goal, A, b)
                 except:
                     MPC.opti.debug.show_infeasibilities()
-                    print("x: \n{}\nu :\n{}\n".format(MPC.opti.debug.value(MPC.x), MPC.opti.debug.value(MPC.u)))
-                    print("A: \n{}\nb: \n{}\n".format(A@state0[:3], b))
                     C_free.show_elli(vertices, p0)
                 #end_time = time.time()
                 #print("MPC computation time: ", end_time - start_time)
@@ -89,10 +96,9 @@ if __name__ == "__main__":
                 action = np.zeros(env.n())
                 for i, j in enumerate(robots[0]._dofs):
                     action[j] = actionMPC[i]
-
-                # if (k%50 == 0):
-                #     house.Obstacles.display()
-                # k += 1
-        C_free.show_elli(vertices, p0)     
-        env.close()
+            k += 1
+            # if (k%50 == 0):
+            #     house.Obstacles.display()
+            # k += 1 
+    env.close()
         
