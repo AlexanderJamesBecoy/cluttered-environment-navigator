@@ -24,8 +24,8 @@ a3 = 0.0825
 a4 = 0.0825
 a6 = 0.088
 # Sphere constraint clearance
-CLEARANCE1 = 0.5
-CLEARANCE2 = 0.5
+CLEARANCE1 = 0.3
+CLEARANCE2 = 0.3
 # MPC parameters
 DT = 1
 STEPS = 5
@@ -110,7 +110,20 @@ class MPController:
         self.opti.minimize(self.cost)
         self.add_constraints()
         p_opts = dict(print_time=False, verbose=False)
-        s_opts = dict(print_level=0)
+        # s_opts = dict(print_level=0, tol=5e-1, acceptable_constr_viol_tol=0.01)
+        s_opts = {"max_cpu_time": 0.1, 
+				  "print_level": 0, 
+				  "tol": 5e-1, 
+				  "dual_inf_tol": 5.0, 
+				  "constr_viol_tol": 1e-1,
+				  "compl_inf_tol": 1e-1, 
+				  "acceptable_tol": 1e-2, 
+				  "acceptable_constr_viol_tol": 0.01, 
+				  "acceptable_dual_inf_tol": 1e10,
+				  "acceptable_compl_inf_tol": 0.01,
+				  "acceptable_obj_change_tol": 1e20,
+				  "diverging_iterates_tol": 1e20,
+                  "nlp_scaling_method": "none"}
         self.opti.solver('ipopt', p_opts, s_opts) # Set solver 'ipopt'
         self.prev_solution_x = None # Initialization of previous solution (states)
         self.prev_solution_u = None # Initialization of previous solution (actions)

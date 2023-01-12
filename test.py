@@ -14,7 +14,7 @@ import time
 
 TEST_MODE = True # Boolean to initialize test mode to test the MPC
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
-METHOD = 'Elli'
+METHOD = ''
 
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
 R_RADIUS = 0.2
@@ -54,10 +54,11 @@ if __name__ == "__main__":
 
             # Follow a path set by waypoints   z
             MPC = MPController(robots[0])
-            goal = np.array([3, 3, 0.4, 0, 0, 0, 0])
+            goal = np.array([3, 3, 0, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0
             vertices = np.array(house.Obstacles.getVertices())
+            C_free = FreeSpace(vertices, [-3, -3, 0.4])
             while(1):
                 ob, _, _, _ = env.step(action)
                 state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
@@ -69,15 +70,21 @@ if __name__ == "__main__":
                     A = np.hstack((A, zero_col))
                     
                 else:
-                    if (k%20 == 0):
+                    if (k%10 == 0):
                         p0 = [state0[0], state0[1], 0.4]
-                        C_free = FreeSpace(vertices, p0)
                         A, b = C_free.update_free_space(p0)
+                        # C_free.show_elli(vertices, p0)
                 k += 1
-                start_time = time.time()
-                actionMPC = MPC.solve_MPC(state0, goal, A, b)
-                end_time = time.time()
-                print("MPC computation time: ", end_time - start_time)
+                #start_time = time.time()
+                try:
+                    actionMPC = MPC.solve_MPC(state0, goal, A, b)
+                except:
+                    MPC.opti.debug.show_infeasibilities()
+                    print("x: \n{}\nu :\n{}\n".format(MPC.opti.debug.value(MPC.x), MPC.opti.debug.value(MPC.u)))
+                    print("A: \n{}\nb: \n{}\n".format(A@state0[:3], b))
+                    C_free.show_elli(vertices, p0)
+                #end_time = time.time()
+                #print("MPC computation time: ", end_time - start_time)
 
                 action = np.zeros(env.n())
                 for i, j in enumerate(robots[0]._dofs):
@@ -86,4 +93,6 @@ if __name__ == "__main__":
                 # if (k%50 == 0):
                 #     house.Obstacles.display()
                 # k += 1
+        C_free.show_elli(vertices, p0)     
         env.close()
+        
