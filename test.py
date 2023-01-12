@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
             # Follow a path set by waypoints   z
             MPC = MPController(robots[0])
-            goal = np.array([3, 3, 0, 0, 0, 0, 0])
+            goal = np.array([3, 3, 0.4, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0
             vertices = np.array(house.Obstacles.getVertices())
@@ -69,10 +69,11 @@ if __name__ == "__main__":
                     A = np.hstack((A, zero_col))
                     
                 else:
-                    p0 = [state0[0], state0[1], 0.4]
-                    C_free = FreeSpace(vertices, p0)
-                    A, b = C_free.update_free_space(p0)
-
+                    if (k%20 == 0):
+                        p0 = [state0[0], state0[1], 0.4]
+                        C_free = FreeSpace(vertices, p0)
+                        A, b = C_free.update_free_space(p0)
+                k += 1
                 start_time = time.time()
                 actionMPC = MPC.solve_MPC(state0, goal, A, b)
                 end_time = time.time()
