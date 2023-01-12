@@ -133,7 +133,7 @@ class MPController:
         
         self.prev_solution_x = solution.value(self.x)
         self.prev_solution_u = solution.value(self.u)
-
+        # self.opti.debug.show_infeasibilities()
         return solution.value(self.u[:, 0])
 
     def add_objective_function(self):
