@@ -11,7 +11,7 @@ EPSILON_SPHERE = 0.1
 SPACE_DIM = 3
 MAX_ITER = 5
 TOLLERANCE = 0.02
-CHECK_TOLLERANCE = 0.01
+CHECK_TOLLERANCE = 0.05
 
 
 class Ellipsoid:
@@ -108,15 +108,20 @@ class FreeSpace:
 
             # find the closest obstacles to the ellipsoid
             # print("Looking for closest obstacle...")
-            closest_obs = self.clostest_obstacle(obs_remaining)
+            index_closest, closest_obs = self.closest_obstacle(obs_remaining)
             # find the closest point of the obstacle to the ellipsoid
             # print("Looking for closest point...")
-            x_closest = self.clostest_point_on_obstacle(closest_obs)
+            x_closest = self.closest_point_on_obstacle(closest_obs)
             # find the hyperplane tangent to the point that separates the obstacle from the ellipsoid
             # print("Computing separating hyperplane...")
             a_i, b_i = self.tangent_plane(x_closest)
             self.A.append(a_i)
             self.b.append(b_i)
+
+            # the closest obstacle can be removed from the set (since we have found its hyperplane)
+            obs_remaining.remove(index_closest)
+            obs_excluded.append(index_closest)
+
 
             # check if the hyperplane found separes also other obstacles from the ellipsoid
             for obs_i in obs_remaining:
@@ -126,7 +131,7 @@ class FreeSpace:
                         check = False
                         break
 
-                if check:
+                if check and obs_i != index_closest:
                     # print("Obstacle removed...")
                     obs_remaining.remove(obs_i)
                     obs_excluded.append(obs_i)
@@ -158,7 +163,7 @@ class FreeSpace:
 
         pass
 
-    def clostest_obstacle(self, obs_remaining) -> np.ndarray:
+    def closest_obstacle(self, obs_remaining) -> tuple:
 
         index_closest = obs_remaining[0]
         min_dist = 100 # initialization of the maximum distance
@@ -174,7 +179,7 @@ class FreeSpace:
                 min_dist = dist_obs
                 index_closest = obs
         
-        return self.obstacles[index_closest]
+        return index_closest, self.obstacles[index_closest]
 
     def calculate_min_dist(self, point: np.ndarray) -> float:
 
@@ -183,7 +188,7 @@ class FreeSpace:
 
         return min_dist
 
-    def clostest_point_on_obstacle(self, obstacle: np.ndarray) -> np.ndarray:
+    def closest_point_on_obstacle(self, obstacle: np.ndarray) -> np.ndarray:
 
         num_vertices = obstacle.shape[0] # number of vertices in the obstacle
         vertices_j = self.ellipsoid.C_inv @ (obstacle - self.ellipsoid.d).T  # transformed vertices in ball space

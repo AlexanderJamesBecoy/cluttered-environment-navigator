@@ -28,6 +28,25 @@ if __name__ == "__main__":
         robots[0]._urdf.center
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
+        env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
+        env = gym.make(
+            "urdf-env-v0",
+            dt=0.01, robots=robots, render=True
+        )
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE)
+
+
+        # Generate environment
+        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        ob = env.reset(pos=start_pos)
+        is_open = {
+            'bathroom':         True,
+            'outdoor':          True,
+            'top_bedroom':      True,
+            'bottom_bedroom':   True,
+            'kitchen':          True,
+        }
         house.generate_walls()
         # house.generate_doors()
         house.generate_furniture()

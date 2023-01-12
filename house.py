@@ -445,6 +445,7 @@ class House:
         @param is_open - determines whether the door depending on the name is open or not.
         """
         assert self.test_mode is False
+        # assert test_mode is False
 
         self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_flipped=True)
         self.add_door(room='outdoor', pos=self._points['E'], theta=np.pi)
