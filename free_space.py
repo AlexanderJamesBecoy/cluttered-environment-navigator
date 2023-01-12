@@ -4,6 +4,9 @@ import qpsolvers
 from scipy import sparse
 import cvxpy as cp
 import time
+import matplotlib.pyplot as plt
+from scipy.spatial import ConvexHull
+import random
 
 
 EPSILON_SPHERE = 0.1
@@ -74,24 +77,24 @@ class FreeSpace:
             # keep track of the previous determinant to check the tolerance on the relative change in ellipsoid volume
             det_C_prec = np.linalg.det(self.ellipsoid.C)
             
-            print("Computing separating hyperplanes...")
+            #print("Computing separating hyperplanes...")
             start_time = time.time()
             self.separating_hyperplanes() # find hyperplanes that separates the obstacles from the ellipsoid
             end_time = time.time()
-            print("Time: ", (end_time - start_time))
+            #print("Time: ", (end_time - start_time))
 
-            print("Computing inscribed ellipsoid...")
+            #print("Computing inscribed ellipsoid...")
             start_time = time.time()
             self.inscribed_ellipsoid() # find the maximum volume ellipsoid inscribed in the hyperplanes
             end_time = time.time()
-            print("Time: ", (end_time - start_time))
+            #print("Time: ", (end_time - start_time))
 
             det_C = np.linalg.det(self.ellipsoid.C)
 
             relative_increase = (det_C - det_C_prec) / det_C_prec
-            print("Relative increase: ", relative_increase)
+            #print("Relative increase: ", relative_increase)
             if relative_increase < TOLLERANCE: # check termination condition
-                print("Update succeeded!")
+                #print("Update succeeded!")
                 break
 
         return self.A, self.b 
@@ -225,3 +228,40 @@ class FreeSpace:
         b_i = x @ a_i
 
         return a_i, b_i
+
+    def show_elli(self, vertices, p0):
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+
+        for obj in vertices:
+
+            hull = ConvexHull(obj)
+
+            for simplex in hull.simplices:
+                ax.plot(obj[simplex, 0], obj[simplex, 1], obj[simplex, 2], 'g-')
+
+            ax.scatter(obj[:, 0], obj[:, 1], obj[:, 2])
+        
+        def random_points_on_sphere(r, n_points):
+            points = []
+            for _ in range(n_points):
+                azimuth = random.uniform(0, 2 * np.pi)
+                polar = random.uniform(0, np.pi)
+                x = r * np.sin(polar) * np.cos(azimuth)
+                y = r * np.sin(polar) * np.sin(azimuth)
+                z = r * np.cos(polar)
+                points.append((x, y, z))
+            return np.array(points)
+
+
+        radius = 1
+        n_points = 50
+        points = random_points_on_sphere(radius, n_points)
+
+        for point in points:
+            ell_points = self.ellipsoid.C @ np.array(point) + self.ellipsoid.d
+            # print(ell_points)
+            ax.scatter(ell_points[0], ell_points[1], ell_points[2], color='blue')
+
+        ax.scatter(p0[0], p0[1], p0[2], color='red')
+        plt.show()
