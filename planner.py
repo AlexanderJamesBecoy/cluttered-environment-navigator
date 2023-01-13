@@ -6,11 +6,11 @@ from matplotlib.patches import Rectangle
 from house import House
 
 DOORS = {
-    'bathroom':         True,
-    'outdoor':          True,
-    'top_bedroom':      True,
-    'bottom_bedroom':   True,
-    'kitchen':          True,
+    'bathroom':         False,
+    'outdoor':          False,
+    'top_bedroom':      False,
+    'bottom_bedroom':   False,
+    'kitchen':          False,
 }
 
 class Planner:
@@ -33,47 +33,6 @@ class Planner:
 
         assert_coordinates(start, 'Start')
         assert_coordinates(end, 'End')
-
-        # # Manually-written motion planning per room
-        # if not self._test_mode:
-        #     self._routes = [
-        #         [[-9.25,-3.5], [-9.25,-3.0], [-7.5,-3.0], [-6.5,-1.5]],
-        #         [[-5.5,-1.5], [0.0,-1.5], [0.0, -2.5], [3.8, -3.5], [4.2,-4.5], [6.6,-4.2]],
-        #         [[6.4,-3.5], [6.0,-1.9]],
-        #     ]
-        # else:
-        #     self._routes = [    # @TEST_MODE
-        #         [start, end],
-        #     ]
-
-        # Manually-written doors' "openness" (ignore this)
-        self._doors = [
-            {
-                'bathroom':         True,
-                'outdoor':          True,
-                'top_bedroom':      True,
-                'bottom_bedroom':   True,
-                'kitchen':          True,
-            },
-            {
-                'bathroom':         False,
-                'outdoor':          False,
-                'top_bedroom':      False,
-                'bottom_bedroom':   True,
-                'kitchen':          False,
-            },
-            {
-                'bathroom':         True,
-                'outdoor':          False,
-                'top_bedroom':      False,
-                'bottom_bedroom':   True,
-                'kitchen':          False,
-            },
-        ]
-
-        # Initiation of motion planning
-        no_rooms = 1 #len(self._routes) TODO
-        self.mp_done = False
 
         # Coordinates of obstacles
         self._lines, self._points, self._boxes = self._house.generate_plot_obstacles(door_generated=False)
@@ -102,7 +61,7 @@ class Planner:
         if self._debug_mode:
             start_time = time.time()
 
-        self.rrt = RRT(start=start, goal=end, dim=house_dim, obstacle_list=obstacle_list, step_size=step_size, max_iter=max_iter)
+        self.rrt = RRT(start=start, goal=end, dim=house_dim, obstacle_list=obstacle_list, step_size=step_size, max_iter=max_iter, debug_mode=self._debug_mode)
         self.path, path_cost = self.rrt.find_path()
 
         assert self.path is not None, f"There is no optimal path found with RRT* with parameters `step_size` {step_size} and `max_iter` {max_iter}. Please restart the simulation or adjust the parameters."
@@ -125,27 +84,37 @@ class Planner:
         route = self.path[bifurcation_idx:]
         self._routes.append(route)
 
+        doors = DOORS.copy()
+        self._doors = [doors]
+        for room in room_history:
+            if room == 'living_room':
+                continue
+            doors = doors.copy()
+            doors[room] = True
+            self._doors.append(doors)
+
         if self._debug_mode:
             print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
             print(f'Vertices: {len(self.rrt.vertices)}')
             print(f'Cost: {path_cost} m')
             print(f'RRT execution time: {round(time.time() - start_time,3)} s')
             print(f'Room exploration: {room_history}')
-            print(f'Routes: {self._routes}')
+            print(f'Doors: {self._doors}')
+            # print(f'Routes: {self._routes}')
 
-        return no_rooms
+        return len(self._routes)
 
     def generate_waypoints(self, room):
         # assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
         # assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
-        return self.path, self._doors[room]
+        return self._routes[room], self._doors[room]
 
     def generate_trajectory(self, start, end, type=None):
         # TODO - Linear
         # TODO - Circular
         pass
 
-    def plot_plan_2d(self, route):
+    def plot_plan_2d(self, room_idx):
         # Obtain the line and boxe coordinates of the walls, doors and furniture.
         # lines, points, boxes = self._house.generate_plot_obstacles()
 
@@ -177,35 +146,44 @@ class Planner:
         # Plot RRT
         # num_points = int(self.rrt.step_size*self.rrt.max_iter)
         for vertex in self.rrt.vertices:
-            ax.plot(vertex[1], vertex[2], color='orange', marker='o', markersize=1)
+            ax.plot(vertex[1], vertex[2], color='gray', marker='o', markersize=1)
         
         # Plot the route as red vectors.
         if self.path is not None:
             for i in range(1,len(self.path)):
-                x1 = route[i-1]
-                x2 = route[i]
+                x1 = self.path[i-1]
+                x2 = self.path[i]
                 magnitude_x = x2[0] - x1[0]
                 magnitude_y = x2[1] - x1[1]
                 theta = np.arctan2(magnitude_y, magnitude_x)
                 ax.arrow(x1[0], x1[1], magnitude_x-0.05*np.cos(theta), magnitude_y-0.05*np.sin(theta), color='r', head_width=0.05, width=0.01)
-                circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='brown', fill=False)
+                circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
                 ax.add_patch(circle)
 
 
         # Plot the route as red vectors.
-        for routee in self._routes:
-            for i in range(1,len(routee)):
-                x1 = routee[i-1]
-                x2 = routee[i]
-                magnitude_x = x2[0] - x1[0]
-                magnitude_y = x2[1] - x1[1]
-                theta = np.arctan2(magnitude_y, magnitude_x)
-                ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
-        
+        # for routee in self._routes:
+        #     for i in range(1,len(routee)):
+        #         x1 = routee[i-1]
+        #         x2 = routee[i]
+        #         magnitude_x = x2[0] - x1[0]
+        #         magnitude_y = x2[1] - x1[1]
+        #         theta = np.arctan2(magnitude_y, magnitude_x)
+        #         ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
+        for i in range(1,len(self._routes[room_idx])):
+            x1 = self._routes[room_idx][i-1]
+            x2 = self._routes[room_idx][i]
+            magnitude_x = x2[0] - x1[0]
+            magnitude_y = x2[1] - x1[1]
+            theta = np.arctan2(magnitude_y, magnitude_x)
+            ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
+        plt.xlabel('x [m]')
+        plt.ylabel('y [m]')
+        plt.title(f'RRT* implementation on route {room_idx}/{len(self._routes)}')
         plt.show()
 
 class RRT:
-    def __init__(self, start, goal, dim, obstacle_list, step_size = 1.0, max_iter = 100):
+    def __init__(self, start, goal, dim, obstacle_list, step_size = 1.0, max_iter = 100, debug_mode=False):
         self.start = start
         self.goal = goal
         self.dim = dim
@@ -213,6 +191,7 @@ class RRT:
         self.step_size = step_size
         self.max_iter = max_iter
         self.vertices = []
+        self.debug_mode = debug_mode
 
     def get_distance(self, point_1, point_2):
         """
@@ -324,7 +303,8 @@ class RRT:
             nearest_point = self.find_nearest(rand_point)
             new_point = self.steer(random_point=rand_point, nearest_point=nearest_point[1:3], option='default')
 
-            print(f'nearest point to point {len(self.vertices)}: {nearest_point}')
+            if self.debug_mode:
+                print(f'nearest point to point {len(self.vertices)}: {nearest_point}')
             if new_point is None:
                 continue
             if self.in_collision(new_point, nearest_point[1:3]):
@@ -334,7 +314,10 @@ class RRT:
             nearest_points_idx = self.find_nearest_cluster(new_point)
             parent, cost = self.choose_parent(new_point, nearest_point, nearest_points_idx)
             new_point = [i, new_point[0], new_point[1], parent, cost]
-            print(f'new point {len(self.vertices)-1}: {new_point}')
+
+            if self.debug_mode:
+                print(f'new point {len(self.vertices)-1}: {new_point}')
+            
             self.vertices.append(new_point)
             self.rewire(new_point, nearest_points_idx)
             

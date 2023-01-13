@@ -37,15 +37,15 @@ if __name__ == "__main__":
         # History
         history = []
 
-        for room in range(no_rooms):
+        for i in range(no_rooms):
             # Generate environment
-            route, open = planner.generate_waypoints(room)
+            route, open = planner.generate_waypoints(i)
             init_joints = robots[0].set_initial_pos(route[0])
             ob = env.reset(pos=init_joints)
             house.draw_walls()
             house.draw_doors(open)
             house.draw_furniture()
-            planner.plot_plan_2d(route)
+            planner.plot_plan_2d(i)
 
             # Follow a path set by waypoints   z
             robots[0].follow_path(env=env, house=house, waypoints=route)

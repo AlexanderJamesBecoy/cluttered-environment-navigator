@@ -6,9 +6,17 @@ from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
 import time
 import os
 
-HEIGHT = 1.0
+HEIGHT = 2.0
 WIDTH = 0.1
 SCALE = 1.5
+HEIGHT_KNOB = 1.0
+
+DIMS = {
+        'wall': {'width': 0.1, 'length': None, 'height': 1.5},
+        'door': {'width': 0.2, 'length': None, 'height': 2.0, 'offset': 0.5},
+        'knob': {'radius': 0.1, 'height': 1.0, 'offset': 0.3},
+        'scale': 1.5,
+}
 
 class House:
     """
@@ -101,15 +109,7 @@ class House:
         self._furniture = []
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
         self._test_mode = test_mode
-
-    # def set_offset(self):
-    #     max_width = 0.0
-    #     max_length = 0.0
-    #     for x in self._points:  # Center the points around the origin.
-    #         self._points[x] = (self._points[x] - self._offset)*SCALE
-    #         max_width = self._points[x][0] if self._points[x][0] > max_width else max_width
-    #         max_length = self._points[x][1] if self._points[x][1] > max_length else max_length
-    #     return max_width, max_length
+        self._dims = DIMS
 
     def update(self, env):
         """
@@ -165,7 +165,7 @@ class House:
                                             # gym `env` draws the shape centered.
             theta = np.arctan2(*vec)        # Obtain the angle of the vector.
         
-            dim = np.array([WIDTH, np.linalg.norm(vec), HEIGHT])    # Obtain the dimension of the wall.
+            dim = np.array([self._dims['wall']['width'], np.linalg.norm(vec), self._dims['wall']['height']])    # Obtain the dimension of the wall.
             pos = [[avg[0], avg[1], theta]]                         # Describe the position of the wall with average position and angle.
             self._walls.append({'pos': pos, 'dim': dim})
             self.Obstacles.walls.append({'x': pos[0][0], 'y': pos[0][1], 'theta': pos[0][2], 'width': dim[0], 'length': dim[1], 'height': dim[2]}) # Add new obstacle pos to list
@@ -580,8 +580,8 @@ class Door:
         self.scale = scale
         self.flipped = 1    # No mirroring of poses.
         self.open = 0       # No additive angle.
-        self.dim_door = np.array([1.0*self.scale, 0.2, 2.0])
-        self.dim_knob = np.array([0.2*self.scale, 0.3, 0.2]) # TODO -> into goal object
+        self.dim_door = np.array([1.0*self.scale, DIMS['door']['width'], DIMS['door']['height']])
+        self.dim_knob = np.array([DIMS['wall']['width']*self.scale, 0.3, 0.2]) # TODO -> into goal object
         self.knobs = []
         self.pos_door = []
         self.pos_knob = []
@@ -597,27 +597,29 @@ class Door:
         """
         # If the door is open, an additive angle is added to rotate the door by additional 90 deg.
         if is_open:
-            self.open = 0.5*np.pi
+            self.open = DIMS['door']['offset']*np.pi
 
-        offset_x = 0.5*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
-        offset_y = 0.5*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
+        offset_x = DIMS['door']['offset']*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
+        offset_y = DIMS['door']['offset']*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
 
         # Poses of 2D offset away from the center of the door to draw the doorknob. This is due to `env` drawing the shapes centered.
-        offset_x_knob = 0.3*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
-        offset_y_knob = 0.3*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
+        offset_x_knob = DIMS['knob']['offset']*self.scale*np.cos(self.theta+self.open*self.flipped)*self.flipped
+        offset_y_knob = DIMS['knob']['offset']*self.scale*np.sin(self.theta+self.open*self.flipped)*self.flipped
+        
         # Absolute 2D poses describing the centered positions of the door and the doorknob, respectively.
         self.pos_door = [[self.pos[0]+offset_x, self.pos[1]+offset_y, self.theta+self.open*self.flipped]]
         self.pos_knob = [[self.pos[0]+offset_x+offset_x_knob, self.pos[1]+offset_y+offset_y_knob, self.theta+self.open*self.flipped]]
 
         # Draw the door and doorknob.
         self.env.add_shapes(shape_type="GEOM_BOX", dim=self.dim_door, mass=0, poses_2d=self.pos_door)
-        self.env.add_shapes(shape_type="GEOM_BOX",dim=self.dim_knob, mass=0, poses_2d=self.pos_knob, place_height=1.0)
+        # self.env.add_shapes(shape_type="GEOM_BOX",dim=self.dim_knob, mass=0, poses_2d=self.pos_knob)
 
         # Create door knob objects
-        knobs_offset = np.array([0.15*self.scale*np.sin(self.theta+self.open*self.flipped), 0.15*np.cos(self.theta+self.open*self.flipped), 0])
+        knob_offset_xy = DIMS['knob']['offset']/2.0
+        knobs_offset = np.array([knob_offset_xy*self.scale*np.sin(self.theta+self.open*self.flipped), knob_offset_xy*np.cos(self.theta+self.open*self.flipped), 0])
         pos_knob = [
-            np.hstack((np.array(self.pos_knob)[0][0:2], np.array([1.0]))) - knobs_offset,
-            np.hstack((np.array(self.pos_knob)[0][0:2], np.array([1.0]))) + knobs_offset,
+            np.hstack((np.array(self.pos_knob)[0][0:2], np.array([DIMS['knob']['height']]))) - knobs_offset,
+            np.hstack((np.array(self.pos_knob)[0][0:2], np.array([DIMS['knob']['height']]))) + knobs_offset,
         ]
         for i in range(2):
             knob = Knob(self.env, pos_knob[i])
@@ -637,7 +639,7 @@ class Knob:
     This class simulates a simple door knob. It only acts a static entity and is used as a goal for our mobile manipulator.
     """
 
-    def __init__(self, env, pos_3d, radius=0.1):
+    def __init__(self, env, pos_3d, radius=DIMS['knob']['radius']):
         """
         Declare public variables from the given arguments.
          - `pos_3d` describes the 3d pose of this knob.
