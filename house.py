@@ -199,6 +199,7 @@ class House:
             'dim': dim,
         }
         self._furniture.append(furniture)
+        self.Obstacles.furnitures.append({'x': pos_x, 'y': pos_y, 'width': dim[0], 'length': dim[1], 'height': dim[2]})
         # self.Obstacles[urdf].append(self._furniture[urdf]) # TODO
 
     def add_furniture_box(self, name, pos, dim):

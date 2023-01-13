@@ -66,6 +66,7 @@ class ObstacleConstraintsGenerator:
         self.computeVertices(obstacles=self.doors, obstacles_name='doors')
         self.computeVertices(obstacles=self.furnitures, obstacles_name='furnitures')
         self.vertices = np.array(self.vertices)
+        ceiling_height = 1
         floor_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), -0.1]
         floor_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), -0.1]
         floor_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), -0.1]
@@ -76,15 +77,15 @@ class ObstacleConstraintsGenerator:
         floor_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 0]
         floor_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 0]
 
-        ceiling_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
-        ceiling_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
-        ceiling_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
-        ceiling_brt = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
+        ceiling_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), ceiling_height+0.1]
+        ceiling_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), ceiling_height+0.1]
+        ceiling_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), ceiling_height+0.1]
+        ceiling_brt = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), ceiling_height+0.1]
 
-        ceiling_trb = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
-        ceiling_tlb = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
-        ceiling_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
-        ceiling_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
+        ceiling_trb = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), ceiling_height]
+        ceiling_tlb = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), ceiling_height]
+        ceiling_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), ceiling_height]
+        ceiling_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), ceiling_height]
 
         floor_vertices = [floor_trb, floor_tlb, floor_blb, floor_brb, floor_trt, floor_tlt, floor_blt, floor_brt]
         ceiling_vertices = [ceiling_trb, ceiling_tlb, ceiling_blb, ceiling_brb, ceiling_trt, ceiling_tlt, ceiling_blt, ceiling_brt]

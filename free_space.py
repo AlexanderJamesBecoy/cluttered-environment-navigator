@@ -229,7 +229,7 @@ class FreeSpace:
 
         return a_i, b_i
 
-    def show_elli(self, vertices, p0):
+    def show_elli(self, vertices: np.ndarray, p0: np.ndarray, end_point: np.ndarray):
         fig = plt.figure()
         ax = plt.axes(projection='3d')
 
@@ -264,4 +264,5 @@ class FreeSpace:
             ax.scatter(ell_points[0], ell_points[1], ell_points[2], color='blue')
 
         ax.scatter(p0[0], p0[1], p0[2], color='red')
+        ax.scatter(end_point[0], end_point[1], end_point[2], color = 'green')
         plt.show()

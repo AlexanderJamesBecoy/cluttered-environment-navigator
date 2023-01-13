@@ -61,12 +61,14 @@ if __name__ == "__main__":
 
         # Follow a path set by waypoints   z
         MPC = MPController(robots[0])
-        goal = np.array([3, 2, 0, 0, 0, 0, 0])
+        init_point = [3, -3, 0.4]
+        end_point = [-5, -3, 0.4]
+        goal = np.array([end_point[0], end_point[1], 0, 0, 0, 0, 0])
         action = np.zeros(env.n())
         k = 0
         vertices = np.array(house.Obstacles.getVertices())
         # print("All vertices: \n{}\n".format(vertices))
-        C_free = FreeSpace(vertices, [3, -3, 0.4])
+        C_free = FreeSpace(vertices, init_point)
 
         while(1):
             ob, _, _, _ = env.step(action)
@@ -83,9 +85,9 @@ if __name__ == "__main__":
                 p0 = [state0[0], state0[1], 0.4]
                 if (k%100 == 0):
                     A, b = C_free.update_free_space(p0)
-
-                if np.allclose(p0, [3, 3, 0.4], rtol=TOL, atol=TOL):
-                    C_free.show_elli(vertices, p0)
+                    C_free.show_elli(vertices, p0, end_point)
+                if np.allclose(p0, end_point, rtol=TOL, atol=TOL):
+                    C_free.show_elli(vertices, p0, end_point)
                     print("\nFINISHED!\n")
                     break
 
@@ -94,7 +96,7 @@ if __name__ == "__main__":
                     actionMPC = MPC.solve_MPC(state0, goal, A, b)
                 except:
                     MPC.opti.debug.show_infeasibilities()
-                    C_free.show_elli(vertices, p0)
+                    C_free.show_elli(vertices, p0, end_point)
                 #end_time = time.time()
                 #print("MPC computation time: ", end_time - start_time)
 
