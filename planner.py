@@ -5,13 +5,22 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from house import House
 
+DOORS = {
+    'bathroom':         True,
+    'outdoor':          True,
+    'top_bedroom':      True,
+    'bottom_bedroom':   True,
+    'kitchen':          True,
+}
+
 class Planner:
 
-    def __init__(self, house: House, test_mode=False):
+    def __init__(self, house: House, test_mode=False, debug_mode=False):
         self._house = house
         self._test_mode = test_mode
+        self._debug_mode = debug_mode
 
-    def plan_motion(self, start=[0.,0.], end=[0.,0.]):
+    def plan_motion(self, start=[0.,0.], end=[0.,0.], step_size=0.5, max_iter=1000):
         """
         Plan the motion of the mobile manipulator with a starting position and a final position.
         @DISCLAIMER: Manually-written motion planning as of the moment.
@@ -25,26 +34,26 @@ class Planner:
         assert_coordinates(start, 'Start')
         assert_coordinates(end, 'End')
 
-        # Manually-written motion planning per room
-        if not self._test_mode:
-            self._routes = [
-                [[-9.25,-3.5], [-9.25,-3.0], [-7.5,-3.0], [-6.5,-1.5]],
-                [[-5.5,-1.5], [0.0,-1.5], [0.0, -2.5], [3.8, -3.5], [4.2,-4.5], [6.6,-4.2]],
-                [[6.4,-3.5], [6.0,-1.9]],
-            ]
-        else:
-            self._routes = [    # @TEST_MODE
-                [start, end],
-            ]
+        # # Manually-written motion planning per room
+        # if not self._test_mode:
+        #     self._routes = [
+        #         [[-9.25,-3.5], [-9.25,-3.0], [-7.5,-3.0], [-6.5,-1.5]],
+        #         [[-5.5,-1.5], [0.0,-1.5], [0.0, -2.5], [3.8, -3.5], [4.2,-4.5], [6.6,-4.2]],
+        #         [[6.4,-3.5], [6.0,-1.9]],
+        #     ]
+        # else:
+        #     self._routes = [    # @TEST_MODE
+        #         [start, end],
+        #     ]
 
         # Manually-written doors' "openness" (ignore this)
         self._doors = [
             {
-                'bathroom':         False,
-                'outdoor':          False,
-                'top_bedroom':      False,
-                'bottom_bedroom':   False,
-                'kitchen':          False,
+                'bathroom':         True,
+                'outdoor':          True,
+                'top_bedroom':      True,
+                'bottom_bedroom':   True,
+                'kitchen':          True,
             },
             {
                 'bathroom':         False,
@@ -63,13 +72,15 @@ class Planner:
         ]
 
         # Initiation of motion planning
-        no_rooms = len(self._routes)
+        no_rooms = 1 #len(self._routes) TODO
         self.mp_done = False
 
         # Coordinates of obstacles
-        self._lines, self._points, self._boxes = self._house.generate_plot_obstacles()
+        self._lines, self._points, self._boxes = self._house.generate_plot_obstacles(door_generated=False)
         obstacle_list = []
         for line in self._lines:
+            if line['type'] == 'door':
+                continue
             obstacle = Obstacle(line['coord'][0], line['coord'][1])
             obstacle_list.append(obstacle)
         for box in self._boxes:
@@ -87,20 +98,47 @@ class Planner:
             obstacle_list.append(obstacle_down)
         
         house_dim = [MIN_CORNER, MAX_CORNER]
-        self.rrt = RRT(self._routes[0][0], self._routes[-1][-1], dim=house_dim, obstacle_list=obstacle_list, step_size=0.5, max_iter=5000)
+        
+        if self._debug_mode:
+            start_time = time.time()
+
+        self.rrt = RRT(start=start, goal=end, dim=house_dim, obstacle_list=obstacle_list, step_size=step_size, max_iter=max_iter)
         self.path, path_cost = self.rrt.find_path()
-        if self.path is not None:
-            self._routes[0] = self.path
-        print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
-        print(f'Vertices: {len(self.rrt.vertices)}')
-        print(f'Cost: {path_cost}')
+
+        assert self.path is not None, f"There is no optimal path found with RRT* with parameters `step_size` {step_size} and `max_iter` {max_iter}. Please restart the simulation or adjust the parameters."
+        
+        room_history = []
+        self._routes = []
+        bifurcation_idx = 0
+        room = self._house.get_room(self.path[0][0], self.path[0][1])
+        room_history.append(room)
+        for vertex_idx, vertex in enumerate(self.path[1:]):
+            room = self._house.get_room(vertex[0], vertex[1])
+            if room is None:
+                continue
+            if room == room_history[-1]:
+                continue
+            route = self.path[bifurcation_idx:vertex_idx+1]
+            bifurcation_idx = vertex_idx + 1
+            room_history.append(room)
+            self._routes.append(route)
+        route = self.path[bifurcation_idx:]
+        self._routes.append(route)
+
+        if self._debug_mode:
+            print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
+            print(f'Vertices: {len(self.rrt.vertices)}')
+            print(f'Cost: {path_cost} m')
+            print(f'RRT execution time: {round(time.time() - start_time,3)} s')
+            print(f'Room exploration: {room_history}')
+            print(f'Routes: {self._routes}')
 
         return no_rooms
 
     def generate_waypoints(self, room):
-        assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
-        assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
-        return self._routes[room], self._doors[room]
+        # assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
+        # assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
+        return self.path, self._doors[room]
 
     def generate_trajectory(self, start, end, type=None):
         # TODO - Linear
@@ -136,28 +174,33 @@ class Planner:
                 fill=True,
             ))
 
-        # Plot the route as red vectors.
-        # for i in range(1,len(route)):
-        #     x1 = route[i-1]
-        #     x2 = route[i]
-        #     magnitude_x = x2[0] - x1[0]
-        #     magnitude_y = x2[1] - x1[1]
-        #     theta = np.arctan2(magnitude_y, magnitude_x)
-        #     ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='r', head_width=0.2, width=0.05)
-
         # Plot RRT
+        # num_points = int(self.rrt.step_size*self.rrt.max_iter)
         for vertex in self.rrt.vertices:
-            ax.plot(vertex[0], vertex[1], color='orange', marker='o', markersize=1)
+            ax.plot(vertex[1], vertex[2], color='orange', marker='o', markersize=1)
         
         # Plot the route as red vectors.
         if self.path is not None:
             for i in range(1,len(self.path)):
-                x1 = self.path[i-1]
-                x2 = self.path[i]
+                x1 = route[i-1]
+                x2 = route[i]
                 magnitude_x = x2[0] - x1[0]
                 magnitude_y = x2[1] - x1[1]
                 theta = np.arctan2(magnitude_y, magnitude_x)
                 ax.arrow(x1[0], x1[1], magnitude_x-0.05*np.cos(theta), magnitude_y-0.05*np.sin(theta), color='r', head_width=0.05, width=0.01)
+                circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='brown', fill=False)
+                ax.add_patch(circle)
+
+
+        # Plot the route as red vectors.
+        for routee in self._routes:
+            for i in range(1,len(routee)):
+                x1 = routee[i-1]
+                x2 = routee[i]
+                magnitude_x = x2[0] - x1[0]
+                magnitude_y = x2[1] - x1[1]
+                theta = np.arctan2(magnitude_y, magnitude_x)
+                ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
         
         plt.show()
 
@@ -170,7 +213,6 @@ class RRT:
         self.step_size = step_size
         self.max_iter = max_iter
         self.vertices = []
-        self.edges = []
 
     def get_distance(self, point_1, point_2):
         """
@@ -183,12 +225,13 @@ class RRT:
         """
         Helper function
         """
-        return self.get_distance(point[0:2], self.goal)
+        return self.get_distance(point[1:3], self.goal)
 
     def in_collision(self, point_1, point_2):
         """
         Helper function to check if a line segment between p1 and p2 is in collision
         """
+        random.shuffle(self.obstacle_list)
         for obstacle in self.obstacle_list:
             if obstacle.check_collision(point_1, point_2):
                 return True
@@ -201,31 +244,34 @@ class RRT:
         min_dist = float('inf')
         nearest_point = None
         for vertex in self.vertices:
-            dist = self.get_distance(point, vertex[0:2])
+            dist = self.get_distance(point, vertex[1:3])
             if dist < min_dist:
                 nearest_point = vertex
                 min_dist = dist
         
         return nearest_point
     
-    def expand(self, random_point, nearest_point):
+    def steer(self, random_point, nearest_point, option='default'):
         """
         Helper function: steer
         """
-        # if self.in_collision(nearest_point, random_point):
-        #     return None
-        new_point = random_point
+        if self.in_collision(nearest_point, random_point):
+            return None
         if self.get_distance(nearest_point, random_point) > self.step_size:
-            # new_point = np.array([
-            #     nearest_point[0] + self.step_size*(random_point[0]-nearest_point[0])/self.get_distance(nearest_point,random_point),
-            #     nearest_point[1] + self.step_size*(random_point[1]-nearest_point[1])/self.get_distance(nearest_point,random_point)
-            # ])
-            theta = np.random.uniform(-np.pi, np.pi)
-            new_point = [
-                nearest_point[0] + self.step_size*np.cos(theta),
-                nearest_point[1] + self.step_size*np.sin(theta),
-            ]
-        return new_point
+            if option == 'random':
+                theta = np.random.uniform(-np.pi, np.pi)
+                # mean = np.arctan2(self.goal[1] - nearest_point[1], self.goal[0] - nearest_point[0])
+                # theta = np.random.normal(mean, scale=np.pi)
+                random_point = [
+                    nearest_point[0] + self.step_size*np.cos(theta),
+                    nearest_point[1] + self.step_size*np.sin(theta),
+                ]
+            else:
+                random_point = [
+                    nearest_point[0] + self.step_size*(random_point[0]-nearest_point[0])/self.get_distance(nearest_point,random_point),
+                    nearest_point[1] + self.step_size*(random_point[1]-nearest_point[1])/self.get_distance(nearest_point,random_point),
+                ]
+        return random_point
 
     def find_nearest_cluster(self, new_point):
         """
@@ -233,204 +279,82 @@ class RRT:
         """
         nearest_points = []
         for vertex in self.vertices:
-            dist = self.get_distance(new_point, vertex[0:2])
+            dist = self.get_distance(new_point, vertex[1:3])
             if dist < self.step_size:
-                nearest_points.append(vertex)
+                nearest_points.append(vertex[0])
         return nearest_points
 
     def choose_parent(self, new_point, nearest_point, nearest_points):
         """
         Helper function
         """
-        chosen_parent = nearest_point
-        min_cost = nearest_point[3] + self.get_distance(new_point, nearest_point[0:2])
-        for vertex in self.vertices:
-            if vertex not in nearest_points:
+        chosen_parent = nearest_point[0]
+        min_cost = nearest_point[4] + self.get_distance(new_point, nearest_point[1:3])
+        for vertex_idx in nearest_points:
+            if vertex_idx == nearest_point[0]:
                 continue
-
-            # cost = self.get_distance(vertex[0:2], new_point[0:2])
-            parent = vertex
-            next_parent = parent[2]
-            nearest_parents = np.array(nearest_points)[:,0:2].tolist()
-            while next_parent in nearest_parents:
-                parent = nearest_points[[nearest_parents[i] == parent[2] for i in range(len(nearest_parents))]]
-                next_parent = parent[2]
-                print(f'parent: {parent}')
-                print(f'next parent: {next_parent}')
-                # if next_parent in nearest_points:
-                #     parent = next_parent
-
-            cost = parent[3] + self.get_distance(parent[0:2], new_point)
+            vertex = self.vertices[vertex_idx]
+            cost = vertex[4] + self.get_distance(new_point, vertex[1:3])
             if cost < min_cost:
+                chosen_parent = vertex[0]
                 min_cost = cost
-                chosen_parent = parent
-            
-        return chosen_parent[0:2], min_cost
+        return chosen_parent, min_cost
 
-
-    def rewire(self, nearest_point, nearest_points):
+    def rewire(self, new_point, nearest_points):
         """
         Helper function
         """
-        for i in range(len(self.vertices)):
-            vertex = self.vertices[i]
-            if vertex not in nearest_points: # Ignore vertices not in cluster
+        for vertex_idx in nearest_points:
+            vertex = self.vertices[vertex_idx]
+            if self.in_collision(vertex[1:3], new_point[1:3]):
                 continue
-            
-            if self.in_collision(vertex[0:2], nearest_point[0:2]): # Ignore vertices that are not obstacle free
+            if vertex[3] is None:
                 continue
-
-            if vertex[2] is None: # Ignore starting vertex
-                continue
-
-            cost = nearest_point[3] + self.get_distance(vertex[0:2], nearest_point[0:2])
-            if cost < vertex[3]:
-                self.vertices[i][2] = nearest_point[0:2]
-                self.vertices[i][3] = cost
+            cost = new_point[4] + self.get_distance(vertex[1:3], new_point[1:3])
+            if cost < vertex[4]:
+                self.vertices[vertex_idx][3] = new_point[0]
+                self.vertices[vertex_idx][4] = cost
 
     def find_path(self):
         min_x, min_y = self.dim[0]
         max_x, max_y = self.dim[1]
-        self.vertices = [[self.start[0], self.start[1], None, 0.0]]
-        for i in range(self.max_iter):
-            rand_point = np.array([np.random.uniform(min_x, max_x), np.random.uniform(min_y, max_y)])
+        self.vertices = [[0, self.start[0], self.start[1], None, 0.0]]
+        while len(self.vertices) < self.max_iter:
+            rand_point = [np.random.uniform(min_x, max_x), np.random.uniform(min_y, max_y)]
             nearest_point = self.find_nearest(rand_point)
-            print(f'nearest point to point {i}: {nearest_point}')
-            new_point = self.expand(rand_point, nearest_point[0:2])
+            new_point = self.steer(random_point=rand_point, nearest_point=nearest_point[1:3], option='default')
 
-            if self.in_collision(new_point, nearest_point[0:2]):
+            print(f'nearest point to point {len(self.vertices)}: {nearest_point}')
+            if new_point is None:
+                continue
+            if self.in_collision(new_point, nearest_point[1:3]):
                 continue
 
-            nearest_points = self.find_nearest_cluster(new_point[0:2])
-            parent, cost = self.choose_parent(new_point, nearest_point, nearest_points)
-            new_point = [new_point[0], new_point[1], parent, cost]
+            i = len(self.vertices)
+            nearest_points_idx = self.find_nearest_cluster(new_point)
+            parent, cost = self.choose_parent(new_point, nearest_point, nearest_points_idx)
+            new_point = [i, new_point[0], new_point[1], parent, cost]
+            print(f'new point {len(self.vertices)-1}: {new_point}')
             self.vertices.append(new_point)
-            # self.rewire(nearest_point, nearest_points)
+            self.rewire(new_point, nearest_points_idx)
             
-            if self.get_heuristic(new_point) < self.step_size:
-                path = [self.goal, new_point]
+            if self.get_heuristic(new_point) <= self.step_size:
+                path = [self.goal, new_point[1:3]]
                 cur_point = new_point
-                while cur_point[0:2] != self.start:
+                while cur_point[1:3] != self.start:
                     dead_end = True
                     for vertex in self.vertices:
-                        if vertex[0:2] == cur_point[2]:
-                            print(f'Append vertex: {vertex[0:2]}, length: {len(path)}')
+                        if vertex[0] == cur_point[3]:
+                            print(f'Append vertex to path: {vertex[1:3]}, length: {len(path)}')
                             cur_point = vertex
-                            path.append(vertex[0:2])
+                            path.append(vertex[1:3])
                             dead_end = False
                             break
                     if dead_end:
                         break
-                if cur_point[0:2] == self.start:
-                    return [path[i][0:2] for i in range(len(path))][::-1], new_point[3]
+                if cur_point[1:3] == self.start:
+                    return path[::-1], new_point[4]
         return None, 0
-
-# class RRTStar:
-#     def __init__(self, start, goal, dim, obstacle_list, rrt_star = True, step_size = 0.5, max_iter = 100):
-#         self.start = np.array(start)
-#         self.goal = np.array(goal)
-#         self.dim = dim
-#         self.obstacle_list = obstacle_list
-#         self.rrt_star = rrt_star
-#         self.step_size = step_size
-#         self.max_iter = max_iter
-#         self.trees = []
-        
-#     def dist(self, p1, p2):
-#         """
-#         Helper function to calculate the distance between two points
-#         """
-#         return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
-#         # return np.linalg.norm(p2-p1)
-
-#     def heuristic(self, p):
-#         """
-#         Helper function to calculate the heuristic between a point and the end goal.
-#         """
-#         return self.dist(self.goal, p)
-    
-#     def nearest(self, point):
-#         """
-#         Helper function to find the nearest vertex to a given point
-#         """
-#         min_dist = float('inf')
-#         nearest_vertex = None
-#         parent_idx = None
-#         for idx, vertex in enumerate(self.trees):
-#             vertex = np.array(vertex)
-#             dist = self.dist(vertex[0:2], point)
-#             if dist < min_dist:
-#                 min_dist = dist
-#                 nearest_vertex = vertex
-#                 parent_idx = idx
-#         return np.array(nearest_vertex), parent_idx
-    
-#     def in_collision(self, p1, p2):
-#         """
-#         Helper function to check if a line segment between p1 and p2 is in collision
-#         """
-#         for obstacle in self.obstacle_list:
-#             if obstacle.check_collision(p1, p2):
-#                 return True
-#         return False
-        
-#     def extend(self, p1, p2):
-#         """
-#         Helper function to extend the tree towards a point
-#         """
-#         if self.in_collision(p1, p2):
-#             return None
-#         if self.dist(p1, p2) > self.step_size:
-#             p2 = np.array([
-#                 p1[0] + self.step_size*(p2[0]-p1[0])/self.dist(p1,p2),
-#                 p1[1] + self.step_size*(p2[1]-p1[1])/self.dist(p1,p2)
-#             ])
-#         return p2
-    
-#     def rewire(self, new_point, parent_idx):
-#         """Rewire the tree to improve the path"""
-#         for point in self.trees:
-#             point = np.array(point)
-#             if self.in_collision(new_point[0:2], point[0:2]):
-#                 continue
-#             if point[2] is None:
-#                 continue
-#             cur_cost = self.dist(point, new_point) + new_point[3]
-#             if cur_cost < point[3]:
-#                 point[2] = parent_idx
-#                 point[3] = cur_cost
-
-#     def find_path(self):
-#         """Function to find the path from start to goal"""
-#         min_x, min_y = self.dim[0]
-#         max_x, max_y = self.dim[1]
-#         self.trees = [[self.start[0], self.start[1], None, 0]]
-#         while len(self.trees) < self.max_iter:
-#             rand_point = np.array([np.random.uniform(min_x, max_x), np.random.uniform(min_y, max_y)])
-#             nearest_point, parent_idx = self.nearest(rand_point)
-#             new_point = self.extend(nearest_point[0:2], rand_point)
-            
-#             if self.in_collision(new_point, nearest_point[0:2]):
-#                 continue
-
-#             new_point = [new_point[0], new_point[1], len(self.trees)-1, self.dist(new_point, nearest_point[0:2]) + self.trees[len(self.trees)-1][3]]
-#             self.trees.append(new_point)
-
-#             if self.rrt_star:
-#                 self.rewire(np.array(new_point), parent_idx)
-
-#             if self.heuristic(new_point[0:2]) <= self.step_size:
-#                 path = [new_point[0:2]]
-#                 cur_point = new_point
-#                 while cur_point[0:2] != self.start.tolist():
-#                     for idx, point in enumerate(self.trees):
-#                         if cur_point[2] == idx:
-#                             cur_point = point
-#                             path.append(point[0:2])
-#                             break
-#                 # return [path[i][:2] for i in range(len(path))][::-1]
-#                 return path
-#         return None
 
 class Obstacle:
     def __init__(self, v1, v2):

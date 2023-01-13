@@ -3,7 +3,7 @@ import pybullet as p
 import numpy as np
 from MotionPlanningEnv.urdfObstacle import UrdfObstacle
 from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
-
+import time
 import os
 
 HEIGHT = 1.0
@@ -23,6 +23,8 @@ class House:
     def __init__(self, env, robot_dim: list, scale: float, test_mode=False):
         self._env = env
 
+        # max_width = 0.0
+        # max_length = 0.0
         if not test_mode:
             self._offset = np.array([7.0, 3.5])
             self._points = {
@@ -49,6 +51,27 @@ class House:
                 'U': np.array([11.0,1.0]),  # Wall vertex.
                 'V': np.array([4.0,3.0]),   # Wall vertex.
                 'W': np.array([12.0,1.0]),  # Wall vertex / Door hinge to the bathroom.
+                'X': np.array([10.0,0.0]),  # Living room bounding box
+            }
+            # max_width, max_length = self.set_offset()
+            self._rooms = {
+                'bathroom': [
+                    {'x1': self._points['T'][0].item(), 'y1': self._points['T'][1].item(), 'x2': self._points['H'][0].item(), 'y2': self._points['H'][1].item()},
+                ],
+                'kitchen': [
+                    {'x1': self._points['I'][0].item(), 'y1': self._points['I'][1].item(), 'x2': self._points['F'][0].item(), 'y2': self._points['F'][1].item()},
+                ],
+                'top_bedroom': [
+                    {'x1': self._points['O'][0].item(), 'y1': self._points['O'][1].item(), 'x2': self._points['J'][0].item(), 'y2': self._points['J'][1].item()},
+                ],
+                'bottom_bedroom': [
+                    {'x1': self._points['A'][0].item(), 'y1': self._points['A'][1].item(), 'x2': self._points['P'][0].item(), 'y2': self._points['P'][1].item()},
+                ],
+                'living_room': [
+                    {'x1': self._points['H'][0].item(), 'y1': self._points['H'][1].item(), 'x2': self._points['E'][0].item(), 'y2': self._points['E'][1].item()},
+                    {'x1': self._points['Q'][0].item(), 'y1': self._points['Q'][1].item(), 'x2': self._points['S'][0].item(), 'y2': self._points['S'][1].item()},
+                    {'x1': self._points['X'][0].item(), 'y1': self._points['X'][1].item(), 'x2': self._points['W'][0].item(), 'y2': self._points['W'][1].item()},
+                ],
             }
         else:
             self._offset = np.array([2.5, 2.5])
@@ -58,6 +81,12 @@ class House:
                 'C': np.array([0.0,5.0]),   # Wall vertex.
                 'D': np.array([5.0,5.0]),   # Wall vertex.
             }
+            # max_width, max_length = self.set_offset()
+            self._rooms = {
+                'test': [
+                    {'x1': self._points['A'][0].item(), 'y1': self._points['A'][1].item(), 'x2': self._points['D'][0].item(), 'y2': self._points['D'][1].item()},
+                ]
+            }
 
         max_width = 0.0
         max_length = 0.0
@@ -66,12 +95,21 @@ class House:
             max_width = self._points[x][0] if self._points[x][0] > max_width else max_width
             max_length = self._points[x][1] if self._points[x][1] > max_length else max_length
 
-        self._corners = [(-1.0*self._offset).tolist(), [max_width, max_length]]
+        self._corners = [(-1.0*self._offset*SCALE).tolist(), [max_width, max_length]]
         self._walls = []
         self._doors = {}
         self._furniture = []
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
         self._test_mode = test_mode
+
+    # def set_offset(self):
+    #     max_width = 0.0
+    #     max_length = 0.0
+    #     for x in self._points:  # Center the points around the origin.
+    #         self._points[x] = (self._points[x] - self._offset)*SCALE
+    #         max_width = self._points[x][0] if self._points[x][0] > max_width else max_width
+    #         max_length = self._points[x][1] if self._points[x][1] > max_length else max_length
+    #     return max_width, max_length
 
     def update(self, env):
         """
@@ -470,7 +508,18 @@ class House:
         self.Obstacles.doors = np.array(self.Obstacles.doors)
         self.Obstacles.knobs = np.array(self.Obstacles.knobs)
 
-    def generate_plot_obstacles(self):
+    def get_room(self, x, y):
+        """
+        """
+        x = x/SCALE + self._offset[0]
+        y = y/SCALE + self._offset[1]
+        for room in self._rooms:
+            for box in self._rooms[room]:
+                if (box['x1'] < x < box['x2']) and (box['y1'] < y < box['y2']):
+                    return room
+        return None
+
+    def generate_plot_obstacles(self, door_generated=True):
         """
         Generate lines indicating walls, doors, door knobs and furniture for 2D plot.
         @return lists of coordinates describing lines (walls and doors), points (door knobs) and boxes (furniture).
@@ -489,13 +538,14 @@ class House:
             lines.append(line)
 
         # Generate door line coordinates and knob point coordinates
-        for room in self._doors:
-            line = {
-                'type': 'door',
-                'coord': self._doors[room].get_line()
-            }
-            lines.append(line)
+            for room in self._doors:
+                line = {
+                    'type': 'door',
+                    'coord': self._doors[room].get_line()
+                }
+                lines.append(line)
 
+        if door_generated:
             for i in range(2):
                 point = self._doors[room].knobs[i].get_pos()[0:2]
                 points.append(point)
