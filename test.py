@@ -34,7 +34,7 @@ if __name__ == "__main__":
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=False)
         house.generate_walls()
-        # house.generate_doors()
+        house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=False)
         no_rooms = planner.plan_motion()
@@ -48,7 +48,14 @@ if __name__ == "__main__":
         start_pos = robots[0].set_initial_pos([3, -3])
         ob = env.reset(pos=start_pos)
         house.draw_walls()
-        # house.draw_doors(open)
+        is_open = {
+            'bathroom':         True,
+            'outdoor':          True,
+            'top_bedroom':      True,
+            'bottom_bedroom':   True,
+            'kitchen':          True,
+        }
+        house.draw_doors(is_open)
         house.draw_furniture()
         # planner.plot_plan_2d(route)
 
@@ -58,8 +65,7 @@ if __name__ == "__main__":
         action = np.zeros(env.n())
         k = 0
         vertices = np.array(house.Obstacles.getVertices())
-        print("All vertices: \n{}\n".format(vertices))
-        print(vertices)
+        # print("All vertices: \n{}\n".format(vertices))
         C_free = FreeSpace(vertices, [3, -3, 0.4])
 
         while(1):
@@ -74,7 +80,6 @@ if __name__ == "__main__":
                 
             else:
                 house.Obstacles.generateConstraintsCylinder(ob['robot_0']['joint_state']['position'])
-                house.Obstacles.display()
                 p0 = [state0[0], state0[1], 0.4]
                 if (k%100 == 0):
                     A, b = C_free.update_free_space(p0)

@@ -76,15 +76,15 @@ class ObstacleConstraintsGenerator:
         floor_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 0]
         floor_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 0]
 
-        ceiling_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1.1]
-        ceiling_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1.1]
-        ceiling_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1.1]
-        ceiling_brt = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1.1]
+        ceiling_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
+        ceiling_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
+        ceiling_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
+        ceiling_brt = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])+0.1]
 
-        ceiling_trb = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1]
-        ceiling_tlb = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), 1]
-        ceiling_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1]
-        ceiling_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), 1]
+        ceiling_trb = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
+        ceiling_tlb = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
+        ceiling_blb = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
+        ceiling_brb = [np.max(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), np.max(self.vertices[:, :, 2])]
 
         floor_vertices = [floor_trb, floor_tlb, floor_blb, floor_brb, floor_trt, floor_tlt, floor_blt, floor_brt]
         ceiling_vertices = [ceiling_trb, ceiling_tlb, ceiling_blb, ceiling_brb, ceiling_trt, ceiling_tlt, ceiling_blt, ceiling_brt]
