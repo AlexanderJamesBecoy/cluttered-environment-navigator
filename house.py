@@ -6,7 +6,7 @@ from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
 import time
 import os
 
-HEIGHT = 2.0
+HEIGHT = 2.0 # TODO
 WIDTH = 0.1
 SCALE = 1.5
 HEIGHT_KNOB = 1.0
@@ -197,11 +197,12 @@ class House:
             'urdf': UrdfObstacle(name=urdf, content_dict=urdfObstDict),
             'pos': [pos_x, pos_y, pos_z],
             'dim': dim,
+            'place_height': None,
         }
         self._furniture.append(furniture)
         # self.Obstacles[urdf].append(self._furniture[urdf]) # TODO
 
-    def add_furniture_box(self, name, pos, dim):
+    def add_furniture_box(self, name, pos, dim, place_height=None):
         """
         Create a furniture in a shape of a cube. It will take the center position `pos`
         and the dimension `dim`.
@@ -211,6 +212,7 @@ class House:
             'urdf': None,
             'pos': pos,
             'dim': dim,
+            'place_height': place_height,
         }
         self._furniture.append(furniture)
 
@@ -412,12 +414,12 @@ class House:
             self.add_furniture_box( # Counter, sink # TODO: into objects?
                 name='kitchen_counter_sink',
                 pos=[(self._points['E'][0].item()+self._points['F'][0].item())/2.0,self._points['E'][1].item()-0.4,0],
-                dim=np.array([np.abs(self._points['E'][0].item()-self._points['F'][0].item())-0.3, 0.6, 0.9]),
+                dim=np.array([np.abs(self._points['E'][0].item()-self._points['F'][0].item())-0.3, 0.6, 0.9])
             )
             self.add_furniture_box( # Counter, oven
                 name='kitchen_counter_oven',
                 pos=[self._points['F'][0].item()-0.4,(self._points['F'][1].item()+self._points['G'][1].item())/2.0-0.3,0],
-                dim=np.array([0.6, np.abs(self._points['F'][1].item()-self._points['G'][1].item())-0.6, 0.9]),
+                dim=np.array([0.6, np.abs(self._points['F'][1].item()-self._points['G'][1].item())-0.6, 0.9])
             )
             # self.add_furniture(
             #     urdf='kitchen_refridgerator',
@@ -441,7 +443,7 @@ class House:
             self.add_furniture_box( # Toilet, seat
                 name='bathroom_toilet_seat',
                 pos=[self._points['T'][0].item()+0.65,self._points['T'][1].item()+1.2,0],
-                dim=np.array([0.4, 0.45, 0.4]),
+                dim=np.array([0.4, 0.45, 0.42]),
             )
             ### Bathroom
             ##############################################################################
@@ -451,6 +453,12 @@ class House:
                 name='box_1',
                 pos=[0.,0.,0.],
                 dim=np.array([1.0,1.0,1.0])
+            )
+            self.add_furniture_box(
+                name='bar_1',
+                pos=[0.0, 0.0, 0.0],
+                dim=np.array([1.0, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
+                place_height=1.2,
             )
 
     def draw_furniture(self):
@@ -465,7 +473,7 @@ class House:
             if furniture['urdf'] is not None:
                 self._env.add_obstacle(furniture['urdf'])
             else:
-                self._env.add_shapes(shape_type="GEOM_BOX", dim=furniture['dim'], mass=0, poses_2d=[furniture['pos']])
+                self._env.add_shapes(shape_type="GEOM_BOX", dim=furniture['dim'], mass=0, poses_2d=[furniture['pos']], place_height=furniture['place_height'])
 
     def add_door(self, room, pos, theta, is_flipped=False):
         """
@@ -557,6 +565,7 @@ class House:
                 'y': furniture['pos'][1]-furniture['dim'][1]/2.0,
                 'w': furniture['dim'][0],
                 'h': furniture['dim'][1],
+                'floating': furniture['place_height'] is not None,
             }
             boxes.append(box)
         
