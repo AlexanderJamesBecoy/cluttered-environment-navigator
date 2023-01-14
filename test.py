@@ -34,7 +34,7 @@ if __name__ == "__main__":
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=False)
         house.generate_walls()
-        house.generate_doors()
+        # house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=False)
         no_rooms = planner.plan_motion()
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             'bottom_bedroom':   True,
             'kitchen':          True,
         }
-        house.draw_doors(is_open)
+        # house.draw_doors(is_open)
         house.draw_furniture()
         # planner.plot_plan_2d(route)
 
@@ -103,6 +103,8 @@ if __name__ == "__main__":
                 action = np.zeros(env.n())
                 for i, j in enumerate(robots[0]._dofs):
                     action[j] = actionMPC[i]
+                
+                # MPC.refresh_MPC()
             k += 1
             # if (k%50 == 0):
             #     house.Obstacles.display()

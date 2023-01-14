@@ -14,7 +14,7 @@ weight_terminal_default_theta = 2.0
 weight_terminal_default_arm = 0.7
 
 # Geometry parameters
-offset_z = 0.3 + 0.1
+offset_z = 0.4
 # Denavit-Hartenberg parameters
 d1 = 0.333
 d3 = 0.316
@@ -92,6 +92,8 @@ class MPController:
         self.upper_limit_input = self.model.get_observation_space()['joint_state']['velocity'].high[self.dofs]
 
         self.FHOCP()
+        # self.opti.subject_to(self.x[:, 0] == np.array([-3, -3, 0, 0, 0, 0, 0])) # Initial state constraint
+        self.original_OPTI = self.opti.copy()
 
     def FHOCP(self):
         """
@@ -199,11 +201,14 @@ class MPController:
                 self.opti.subject_to(a_i[0]*p1[0] + a_i[1]*p1[1] + a_i[2]*p1[2] <= b_i - CLEARANCE1)
 
             # # Second sphere
-            p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
-                self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
-                d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
+            # p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
+            #     self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
+            #     d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
 
-            # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
+            # # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
 
-            for a_i, b_i in zip(A, b):
-                self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
+            # for a_i, b_i in zip(A, b):
+            #     self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
+
+    def refresh_MPC(self):
+        self.opti = self.original_OPTI.copy()

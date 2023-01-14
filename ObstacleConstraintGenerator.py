@@ -40,6 +40,7 @@ class ObstacleConstraintsGenerator:
         self.normals = []
         self.vertices = []
         self.constraints = []
+        self.sides = []
 
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.walls, obstacles_name='walls')
         self.generateConstraints(robot_pos=robot_pos, vision_range=vision_range, obstacles=self.doors, obstacles_name='doors')
@@ -133,128 +134,125 @@ class ObstacleConstraintsGenerator:
             dist = np.linalg.norm(center - np.array([robot_pos[0], robot_pos[1]]))
 
             # Check if obstacle is out of range, can be improved by checking each side but takes more time
-            if (dist > vision_range) or len(obstacles) == 0:
-                continue
+            # obstacles were not rotated
+            if obstacles_name=='furnitures' or np.abs(obstacle['theta']) != np.pi/2:
+                # Compute the corner locations and center of each side
+                tl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
+                tr = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
+                br = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
+                bl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
+
+                left_point = [center[0] - obstacle['width']/2, center[1]]
+                top_point = [center[0], center[1] + obstacle['length']/2]
+                right_point = [center[0] + obstacle['width']/2, center[1]]
+                bot_point = [center[0], center[1] - obstacle['length']/2]
             else:
-                # obstacles were not rotated
-                if obstacles_name=='furnitures' or np.abs(obstacle['theta']) != np.pi/2:
-                    # Compute the corner locations and center of each side
-                    tl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
-                    tr = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, 0]
-                    br = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
-                    bl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, 0]
+                tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
+                tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
+                br = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0]
+                bl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0]
 
-                    left_point = [center[0] - obstacle['width']/2, center[1]]
-                    top_point = [center[0], center[1] + obstacle['length']/2]
-                    right_point = [center[0] + obstacle['width']/2, center[1]]
-                    bot_point = [center[0], center[1] - obstacle['length']/2]
-                else:
-                    tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
-                    tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
-                    br = [obstacle['x'] + obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0]
-                    bl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] - obstacle['width']/2, 0]
+                left_point = [center[0] - obstacle['length']/2, center[1]]
+                top_point = [center[0], center[1] + obstacle['width']/2]
+                right_point = [center[0] + obstacle['length']/2, center[1]]
+                bot_point = [center[0], center[1] - obstacle['width']/2]
 
-                    left_point = [center[0] - obstacle['length']/2, center[1]]
-                    top_point = [center[0], center[1] + obstacle['width']/2]
-                    right_point = [center[0] + obstacle['length']/2, center[1]]
-                    bot_point = [center[0], center[1] - obstacle['width']/2]
+            # Compute the normal vectors on each side
+            left_norm = np.array(self.computeNormalVector(bl, tl)[0])
+            top_norm = np.array(self.computeNormalVector(tl, tr)[0])
+            right_norm = np.array(self.computeNormalVector(br, tr)[1])
+            bot_norm = np.array(self.computeNormalVector(bl, br)[1])
 
-                # Compute the normal vectors on each side
-                left_norm = self.computeNormalVector(bl, tl)[0]
-                top_norm = self.computeNormalVector(tl, tr)[0]
-                right_norm = self.computeNormalVector(br, tr)[1]
-                bot_norm = self.computeNormalVector(bl, br)[1]
+            # Transform to unit vectors
+            # left_norm = left_norm / np.linalg.norm(left_norm)
+            # top_norm = top_norm / np.linalg.norm(top_norm)
+            # right_norm = right_norm / np.linalg.norm(right_norm)
+            # bot_norm = bot_norm / np.linalg.norm(bot_norm)
 
-                # Transform to unit vectors
-                left_norm = left_norm / np.linalg.norm(left_norm)
-                top_norm = top_norm / np.linalg.norm(top_norm)
-                right_norm = right_norm / np.linalg.norm(right_norm)
-                bot_norm = bot_norm / np.linalg.norm(bot_norm)
+            # Check which constraints should be active, append those to the final lists
+            # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
+            if robot_pos[0] < left_point[0]: # left side of obstacle
+                self.constraints.append(left_norm@left_point)
+                vectors.append(center-left_point)
+                points.append(left_point)
+                self.normals.append(left_norm)
+                self.sides.append('left')
 
-                # Check which constraints should be active, append those to the final lists
-                # Constrain is active if the robot is on that side of the obstacle. If it's diagonal to the obstacle, then multiple constraints are active
-                if robot_pos[0] < left_point[0]: # left side of obstacle
-                    self.constraints.append(left_norm@left_point)
-                    vectors.append(center-left_point)
-                    points.append(left_point)
-                    self.normals.append(left_norm)
-                    self.sides.append('left')
+                # if robot_pos[1] < bot_point[1]:
+                #     self.constraints.append(bot_norm@bot_point)
+                #     vectors.append(center-bot_point)
+                #     points.append(bot_point)
+                #     self.normals.append(bot_norm)
+                #     self.sides.append('bot')
+                # elif robot_pos[1] > top_point[1]:
+                #     self.constraints.append(top_norm@top_point)
+                #     vectors.append(center-top_point)
+                #     points.append(top_point)
+                #     self.normals.append(top_norm)
+                #     self.sides.append('top')
 
-                    if robot_pos[1] < bot_point[1]:
-                        self.constraints.append(bot_norm@bot_point)
-                        vectors.append(center-bot_point)
-                        points.append(bot_point)
-                        self.normals.append(bot_norm)
-                        self.sides.append('bot')
-                    elif robot_pos[1] > top_point[1]:
-                        self.constraints.append(top_norm@top_point)
-                        vectors.append(center-top_point)
-                        points.append(top_point)
-                        self.normals.append(top_norm)
-                        self.sides.append('top')
+            elif robot_pos[0] > right_point[0]: # right side of obstacle
+                self.constraints.append(right_norm@right_point)
+                vectors.append(center-right_point)
+                points.append(right_point)
+                self.normals.append(right_norm)
+                self.sides.append('right')
+                
+                # if robot_pos[1] < bot_point[1]:
+                #     self.constraints.append(bot_norm@bot_point)
+                #     vectors.append(center-bot_point)
+                #     points.append(bot_point)
+                #     self.normals.append(bot_norm)
+                #     self.sides.append('bot')
+                # elif robot_pos[1] > top_point[1]:
+                #     self.constraints.append(top_norm@top_point)
+                #     vectors.append(center-top_point)
+                #     points.append(top_point)
+                #     self.normals.append(top_norm)
+                #     self.sides.append('top')
 
-                elif robot_pos[0] > right_point[0]: # right side of obstacle
-                    self.constraints.append(right_norm@right_point)
-                    vectors.append(center-right_point)
-                    points.append(right_point)
-                    self.normals.append(right_norm)
-                    self.sides.append('right')
+            elif robot_pos[1] < bot_point[1]: # bottom side of obstacle
+                self.constraints.append(bot_norm@bot_point)
+                vectors.append(center-bot_point)
+                points.append(bot_point)
+                self.normals.append(bot_norm)
+                self.sides.append('bot')
+
+                # if robot_pos[0] < left_point[0]:
+                #     self.constraints.append(left_norm@left_point)
+                #     vectors.append(center-left_point)
+                #     points.append(left_point)
+                #     self.normals.append(left_norm)
+                #     self.sides.append('left')
+                # elif robot_pos[0] > right_point[0]:
+                #     self.constraints.append(right_norm@right_point)
+                #     vectors.append(center-right_point)
+                #     points.append(right_point)
+                #     self.normals.append(right_norm)
+                #     self.sides.append('right')
+
+            elif robot_pos[1] > top_point[1]:
+                self.constraints.append(top_norm@top_point)
+                vectors.append(center-top_point)
+                points.append(top_point)
+                self.normals.append(top_norm)
+                self.sides.append('top')
+
+                # if robot_pos[0] < left_point[0]:
+                #     self.constraints.append(left_norm@left_point)
+                #     vectors.append(center-left_point)
+                #     points.append(left_point)
+                #     self.normals.append(left_norm)
+                #     self.sides.append('left')
+                # elif robot_pos[0] > right_point[0]:
+                #     self.constraints.append(right_norm@right_point)
+                #     vectors.append(center-right_point)
+                #     points.append(right_point)
+                #     self.normals.append(right_norm)
+                #     self.sides.append('right')
                     
-                    if robot_pos[1] < bot_point[1]:
-                        self.constraints.append(bot_norm@bot_point)
-                        vectors.append(center-bot_point)
-                        points.append(bot_point)
-                        self.normals.append(bot_norm)
-                        self.sides.append('bot')
-                    elif robot_pos[1] > top_point[1]:
-                        self.constraints.append(top_norm@top_point)
-                        vectors.append(center-top_point)
-                        points.append(top_point)
-                        self.normals.append(top_norm)
-                        self.sides.append('top')
-
-                elif robot_pos[1] < bot_point[1]: # bottom side of obstacle
-                    self.constraints.append(bot_norm@bot_point)
-                    vectors.append(center-bot_point)
-                    points.append(bot_point)
-                    self.normals.append(bot_norm)
-                    self.sides.append('bot')
-
-                    if robot_pos[0] < left_point[0]:
-                        self.constraints.append(left_norm@left_point)
-                        vectors.append(center-left_point)
-                        points.append(left_point)
-                        self.normals.append(left_norm)
-                        self.sides.append('left')
-                    elif robot_pos[0] > right_point[0]:
-                        self.constraints.append(right_norm@right_point)
-                        vectors.append(center-right_point)
-                        points.append(right_point)
-                        self.normals.append(right_norm)
-                        self.sides.append('right')
-
-                elif robot_pos[1] > top_point[1]:
-                    self.constraints.append(top_norm@top_point)
-                    vectors.append(center-top_point)
-                    points.append(top_point)
-                    self.normals.append(top_norm)
-                    self.sides.append('top')
-
-                    if robot_pos[0] < left_point[0]:
-                        self.constraints.append(left_norm@left_point)
-                        vectors.append(center-left_point)
-                        points.append(left_point)
-                        self.normals.append(left_norm)
-                        self.sides.append('left')
-                    elif robot_pos[0] > right_point[0]:
-                        self.constraints.append(right_norm@right_point)
-                        vectors.append(center-right_point)
-                        points.append(right_point)
-                        self.normals.append(right_norm)
-                        self.sides.append('right')
-                        
-                self.vectors[obstacles_name] = vectors
-                self.points[obstacles_name] = points        
+            self.vectors[obstacles_name] = vectors
+            self.points[obstacles_name] = points        
 
     def display(self) -> None:
         print('plotting')
