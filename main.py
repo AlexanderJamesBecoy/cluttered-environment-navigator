@@ -1,13 +1,11 @@
 import gym
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
 from model import Model
 from house import House
 from planner import Planner
 import warnings
 
-TEST_MODE = True # Boolean to initialize test mode to test the MPC
+TEST_MODE = False # Boolean to initialize test mode to test the MPC
 DEBUG_MODE = True # Boolean to display the states.
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 
@@ -32,7 +30,7 @@ if __name__ == "__main__":
         house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=DEBUG_MODE)
-        no_rooms = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=0.9)
+        no_rooms = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=0.2, max_iter=5000)
 
         # History
         history = []

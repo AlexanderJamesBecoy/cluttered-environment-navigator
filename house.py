@@ -46,12 +46,12 @@ class House:
         self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale) # Create obstacle generating object for MPC.
 
         # Set scale to default during test mode
-        if test_mode:
-            SCALE = 1.0
+        # if test_mode:
+        #     SCALE = 1.0
 
         # Set the environment to validation area if `test_mode` is False.
         if not test_mode:
-            self._offset = np.array([7.0, 3.5]) # Offset to center the area.
+            self._offset = np.array([6.0, 3.5]) # Offset to center the area.
             self._points = {                    # List of vertices for walls and door hinges.
                 'A': np.array([0.0,0.0]),           # Wall vertex.
                 'B': np.array([12.0,0.0]),          # Wall vertex.
