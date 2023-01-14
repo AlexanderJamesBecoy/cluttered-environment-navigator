@@ -1,9 +1,7 @@
 import gym
-import pybullet as p
 import numpy as np
 from MotionPlanningEnv.urdfObstacle import UrdfObstacle
 from ObstacleConstraintGenerator import ObstacleConstraintsGenerator
-import time
 import os
 
 HEIGHT = 2.0 # TODO
@@ -29,40 +27,58 @@ class House:
     """
 
     def __init__(self, env, robot_dim: list, scale: float, test_mode=False):
-        self._env = env
+        """
+        Constructor to generate the environment as house furnished with doors and furniture.
 
-        # max_width = 0.0
-        # max_length = 0.0
+        @param env          - pointer to the gym_envs_urdf environment.
+        @param robot_dim    - list of values determining the dimension of the robot.
+        @param scale        - scalar dimension that determines the robot dimension w.r.t. original size.
+        @param test_mode    - boolean to change to testing area. False is set to validation room.
+        """
+        self._env = env # Set pointer to gym_envs_urdf environment
+        self._test_mode = test_mode # Initialize test_mode
+
+        # List to contain the walls, doors, and furniture
+        self._walls = []
+        self._doors = {}
+        self._furniture = []
+        self._dims = DIMS                                                               # Store the values describing the dimensions describing the environment.
+        self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale) # Create obstacle generating object for MPC.
+
+        # Set scale to default during test mode
+        if test_mode:
+            SCALE = 1.0
+
+        # Set the environment to validation area if `test_mode` is False.
         if not test_mode:
-            self._offset = np.array([7.0, 3.5])
-            self._points = {
-                'A': np.array([0.0,0.0]),   # Wall vertex.
-                'B': np.array([12.0,0.0]),  # Wall vertex.
-                'C': np.array([0.0,7.0]),   # Wall vertex.
-                'D': np.array([7.0,7.0]),   # Wall vertex.
-                'E': np.array([8.0,7.0]),   # Wall vertex / Door hinge to outside.
-                'F': np.array([11.0,7.0]),  # Wall vertex.
-                'G': np.array([11.0,3.0]),  # Wall vertex.
-                'H': np.array([12.0,3.0]),  # Wall vertex.
-                'I': np.array([8.0,3.0]),   # Wall vertex / Door hinge to the kitchen.
-                'J': np.array([5.0,7.0]),   # Wall vertex.
-                'K': np.array([5.0,3.0]),   # Wall vertex.
-                'L': np.array([6.0,7.0]),   # Wall vertex.
-                'M': np.array([6.0,3.0]),   # Wall vertex.
-                'N': np.array([8.0,4.0]),   # Wall vertex.
-                'O': np.array([0.0,3.0]),   # Wall vertex.
-                'P': np.array([3.0,3.0]),   # Wall vertex / Door hinges to the two bedrooms.
-                'Q': np.array([3.0,0.0]),   # Wall vertex.
-                'R': np.array([3.0,2.0]),   # Wall vertex.
-                'S': np.array([10.0,3.0]),  # Wall vertex.
-                'T': np.array([10.0,1.0]),  # Wall vertex.
-                'U': np.array([11.0,1.0]),  # Wall vertex.
-                'V': np.array([4.0,3.0]),   # Wall vertex.
-                'W': np.array([12.0,1.0]),  # Wall vertex / Door hinge to the bathroom.
-                'X': np.array([10.0,0.0]),  # Living room bounding box
+            self._offset = np.array([7.0, 3.5]) # Offset to center the area.
+            self._points = {                    # List of vertices for walls and door hinges.
+                'A': np.array([0.0,0.0]),           # Wall vertex.
+                'B': np.array([12.0,0.0]),          # Wall vertex.
+                'C': np.array([0.0,7.0]),           # Wall vertex.
+                'D': np.array([7.0,7.0]),           # Wall vertex.
+                'E': np.array([8.0,7.0]),           # Wall vertex / Door hinge to outside.
+                'F': np.array([11.0,7.0]),          # Wall vertex.
+                'G': np.array([11.0,3.0]),          # Wall vertex.
+                'H': np.array([12.0,3.0]),          # Wall vertex.
+                'I': np.array([8.0,3.0]),           # Wall vertex / Door hinge to the kitchen.
+                'J': np.array([5.0,7.0]),           # Wall vertex.
+                'K': np.array([5.0,3.0]),           # Wall vertex.
+                'L': np.array([6.0,7.0]),           # Wall vertex.
+                'M': np.array([6.0,3.0]),           # Wall vertex.
+                'N': np.array([8.0,4.0]),           # Wall vertex.
+                'O': np.array([0.0,3.0]),           # Wall vertex.
+                'P': np.array([3.0,3.0]),           # Wall vertex / Door hinges to the two bedrooms.
+                'Q': np.array([3.0,0.0]),           # Wall vertex.
+                'R': np.array([3.0,2.0]),           # Wall vertex.
+                'S': np.array([10.0,3.0]),          # Wall vertex.
+                'T': np.array([10.0,1.0]),          # Wall vertex.
+                'U': np.array([11.0,1.0]),          # Wall vertex.
+                'V': np.array([4.0,3.0]),           # Wall vertex.
+                'W': np.array([12.0,1.0]),          # Wall vertex / Door hinge to the bathroom.
+                'X': np.array([10.0,0.0]),          # Living room bounding box
             }
-            # max_width, max_length = self.set_offset()
-            self._rooms = {
+            self._rooms = {                     # Dictionary of four coordinates describing a room.
                 'bathroom': [
                     {'x1': self._points['T'][0].item(), 'y1': self._points['T'][1].item(), 'x2': self._points['H'][0].item(), 'y2': self._points['H'][1].item()},
                 ],
@@ -81,46 +97,63 @@ class House:
                     {'x1': self._points['X'][0].item(), 'y1': self._points['X'][1].item(), 'x2': self._points['W'][0].item(), 'y2': self._points['W'][1].item()},
                 ],
             }
-        else:
-            self._offset = np.array([2.5, 2.5])
-            self._points = {
-                'A': np.array([0.0,0.0]),   # Wall vertex.
-                'B': np.array([5.0,0.0]),   # Wall vertex.
-                'C': np.array([0.0,5.0]),   # Wall vertex.
-                'D': np.array([5.0,5.0]),   # Wall vertex.
-            }
-            # max_width, max_length = self.set_offset()
-            self._rooms = {
-                'test': [
-                    {'x1': self._points['A'][0].item(), 'y1': self._points['A'][1].item(), 'x2': self._points['D'][0].item(), 'y2': self._points['D'][1].item()},
-                ]
+            self._doors_open = {                # History of which doors are open.
+                'bathroom':         False,
+                'outdoor':          False,
+                'top_bedroom':      False,
+                'bottom_bedroom':   False,
+                'kitchen':          False,
+                'living_room': None,
             }
 
+        # Set the environment to testing area if `test_mode` is True.
+        else:
+            self._offset = np.array([2.5, 5.0]) # Offset to center the area.
+            self._points = {                    # List of vertices for walls and door hinges.
+                'A': np.array([0.0,0.0]),           # Wall vertex.
+                'B': np.array([5.0,0.0]),           # Wall vertex.
+                'C': np.array([0.0,5.0]),           # Wall vertex.
+                'D': np.array([5.0,5.0]),           # Wall vertex.
+                'E': np.array([0.0,10.0]),          # Wall vertex.
+                'F': np.array([5.0,10.0]),         # Wall vertex.
+                'G': np.array([2.0,5.0]),           # Wall vertex / door hinge to another room.
+                'H': np.array([3.0,5.0]),           # Wall vertex.
+            }
+            self._rooms = {                     # Dictionary of four coordinates describing a room.
+                'test1': [
+                    {'x1': self._points['A'][0].item(), 'y1': self._points['A'][1].item(), 'x2': self._points['D'][0].item(), 'y2': self._points['D'][1].item()},
+                ],
+                'test2': [
+                    {'x1': self._points['C'][0].item(), 'y1': self._points['C'][1].item(), 'x2': self._points['F'][0].item(), 'y2': self._points['F'][1].item()},
+                ]
+            }
+            self._doors_open = {                # History of which doors are open.
+                'test1':    None,
+                'test2':    False,
+            }
+
+        # Adjust the list of vertices to the centering offset.
+        # Obtain the max width and max length of the area from bird-eye view.
         max_width = 0.0
         max_length = 0.0
-        for x in self._points:  # Center the points around the origin.
+        for x in self._points:
+            # Center the wall vertices around the origin.
             self._points[x] = (self._points[x] - self._offset)*SCALE
             max_width = self._points[x][0] if self._points[x][0] > max_width else max_width
             max_length = self._points[x][1] if self._points[x][1] > max_length else max_length
 
+        # Store a list of minimal and maximal xy-values of the environment.
+        # [
+        #   [min_x, min_y], 
+        #   [max_x, max_y],
+        # ],
         self._corners = [(-1.0*self._offset*SCALE).tolist(), [max_width, max_length]]
-        self._walls = []
-        self._doors = {}
-        self._furniture = []
-        self.Obstacles = ObstacleConstraintsGenerator(robot_dim=robot_dim, scale=scale)
-        self._test_mode = test_mode
-        self._dims = DIMS
-
-    def update(self, env):
-        """
-        Update a new Gym environment.
-        """
-        self._env = env
 
     def generate_walls(self):
         """
         Generate and draw the fixed wall segments described in `self._points`.
         """
+        # Generate the walls belonging to validation area if `test_mode` is False.
         if not self._test_mode:
             self._wall_vertices = np.array([ # Generate wall edges
                 [self._points['A'], self._points['Q']],
@@ -147,17 +180,23 @@ class House:
                 [self._points['S'], self._points['T']],
                 [self._points['T'], self._points['U']],
             ])
+        
+        # Generating the walls belonging to testing area if `test_mode` is True.
         else:
             self._wall_vertices = np.array([
                 [self._points['A'], self._points['B']],
                 [self._points['A'], self._points['C']],
                 [self._points['B'], self._points['D']],
-                [self._points['C'], self._points['D']],
+                # [self._points['C'], self._points['D']],
+                [self._points['C'], self._points['E']],
+                [self._points['D'], self._points['F']],
+                [self._points['E'], self._points['F']],
+                [self._points['C'], self._points['G']],
+                [self._points['H'], self._points['D']],
             ])
 
-
+        # Iterate each wall edge, obtain length and append information to list `self._walls` and Obstacle's list of walls.
         for wall_vertices in self._wall_vertices:
-            # Iterate for every wall edge, and draw the wall.
             start_pos = wall_vertices[0]
             end_pos = wall_vertices[1] 
             vec = end_pos - start_pos       # Obtain a vector from the two points.
@@ -169,13 +208,13 @@ class House:
             pos = [[avg[0], avg[1], theta]]                         # Describe the position of the wall with average position and angle.
             self._walls.append({'pos': pos, 'dim': dim})
             self.Obstacles.walls.append({'x': pos[0][0], 'y': pos[0][1], 'theta': pos[0][2], 'width': dim[0], 'length': dim[1], 'height': dim[2]}) # Add new obstacle pos to list
-         
         self.Obstacles.walls = np.array(self.Obstacles.walls)
 
     def draw_walls(self):
         """
         Draw the walls into the Gym environment.
         """
+        # Determine if walls exist.
         assert len(self._walls) > 0, f"There are no walls generated. Call house.generate_walls() before executing this method."
 
         for wall in self._walls:
@@ -186,20 +225,21 @@ class House:
         Add a furniture to the `self._furniture` dictionary given the name and file location `loc` of the `urdf`,
         and the 3D position of it in x-axis for `pos_x`, in y-axis for `pos_y`, and in z-axis for `pos_z`.
         """
-        urdf_loc = loc + '.urdf'
-        urdfObstDict = {
+        urdf_loc = loc + '.urdf'    # Obtain the file location and name of the urdf
+        urdfObstDict = {            # Generate a dictionary describing the urdf with type as `urdf`, position, geometry and file location.
             'type': 'urdf',
             'geometry': {'position': [pos_x, pos_y, pos_z]},
             'urdf': os.path.join(os.path.dirname(__file__), urdf_loc),
         }
-        furniture = {
+        furniture = {               # Create a dictionary describing the furniture with name, urdf dictionary, position, dimension and floating height.
             'name': urdf,
             'urdf': UrdfObstacle(name=urdf, content_dict=urdfObstDict),
             'pos': [pos_x, pos_y, pos_z],
             'dim': dim,
             'place_height': None,
         }
-        self._furniture.append(furniture)
+        # Append the furniture into the list of furniture `self._furniture` and Obstacle's list of furniture.
+        self._furniture.append(furniture)  
         # self.Obstacles[urdf].append(self._furniture[urdf]) # TODO
 
     def add_furniture_box(self, name, pos, dim, place_height=None):
@@ -207,19 +247,21 @@ class House:
         Create a furniture in a shape of a cube. It will take the center position `pos`
         and the dimension `dim`.
         """
-        furniture = {
+        furniture = {    # Create a dictionary describing the furniture with name, urdf dictionary, position, dimension and floating height.
             'name': name,
             'urdf': None,
             'pos': pos,
             'dim': dim,
             'place_height': place_height,
         }
+        # Append the furniture into the list of furniture `self._furniture` and Obstacle's list of furniture.
         self._furniture.append(furniture)
 
     def generate_furniture(self):
         """
         Add all the furnitures into the `self._furniture` dictionary.
         """
+        # Generate the furniture belonging to validation area if `test_mode` is False.
         if not self._test_mode:
             #########################################################################
             ### Bottom bedroom
@@ -447,16 +489,45 @@ class House:
             )
             ### Bathroom
             ##############################################################################
+
+        # Generate the furniture belonging to testing area if `test_mode` is True.
         else:
             # @TEST_MODE:
             self.add_furniture_box(
                 name='box_1',
-                pos=[0.,0.,0.],
+                pos=[
+                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+                    (self._points['B'][1].item()+self._points['D'][1].item())/2.0,
+                    0.,
+                ],
+                dim=np.array([1.0,1.0,1.0])
+            )
+            self.add_furniture_box(
+                name='box_2',
+                pos=[
+                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+                    (self._points['D'][1].item()+self._points['F'][1].item())/2.0,
+                    0.,
+                ],
                 dim=np.array([1.0,1.0,1.0])
             )
             self.add_furniture_box(
                 name='bar_1',
-                pos=[0.0, 0.0, 0.0],
+                pos=[
+                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+                    (self._points['B'][1].item()+self._points['D'][1].item())/2.0,
+                    np.pi/2.0,
+                ],
+                dim=np.array([1.0, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
+                place_height=1.2,
+            )
+            self.add_furniture_box(
+                name='bar_2',
+                pos=[
+                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+                    (self._points['D'][1].item()+self._points['F'][1].item())/2.0,
+                    np.pi/2.0,
+                ],
                 dim=np.array([1.0, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
                 place_height=1.2,
             )
@@ -465,6 +536,7 @@ class House:
         """
         Draw the furniture into the Gym environment.
         """
+        # Determine if furniture exist.
         assert len(self._furniture) > 0, f"There are no furniture. Run house.generate_furniture() before executing this method."
 
         for furniture in self._furniture:
@@ -488,19 +560,24 @@ class House:
         Add all door and door knobs to pos list and convert all lists to np arrays
         @param is_open - determines whether the door depending on the name is open or not.
         """
-        assert self._test_mode is False, f"generate_doors() is is not accessible in test mode."
-
-        self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_flipped=True)
-        self.add_door(room='outdoor', pos=self._points['E'], theta=np.pi)
-        self.add_door(room='top_bedroom', pos=self._points['P'], theta=0.0)
-        self.add_door(room='bottom_bedroom', pos=self._points['P'], theta=0.5*np.pi, is_flipped=True)
-        self.add_door(room='kitchen', pos=self._points['I'], theta=-0.5*np.pi, is_flipped=True)
+        # assert self._test_mode is False, f"generate_doors() is is not accessible in test mode."
+        # Generate the furniture belonging to validation area if `test_mode` is False.
+        if not self._test_mode:
+            self.add_door(room='bathroom', pos=self._points['W'], theta=0.0, is_flipped=True)
+            self.add_door(room='outdoor', pos=self._points['E'], theta=np.pi)
+            self.add_door(room='top_bedroom', pos=self._points['P'], theta=0.0)
+            self.add_door(room='bottom_bedroom', pos=self._points['P'], theta=0.5*np.pi, is_flipped=True)
+            self.add_door(room='kitchen', pos=self._points['I'], theta=-0.5*np.pi, is_flipped=True)
+        
+        # Generate the furniture belonging to validation area if `test_mode` is False.
+        else:
+            self.add_door(room='test2', pos=self._points['G'], theta=0.0)
 
     def draw_doors(self, is_open):
         """
         Draw the doors.
         """
-        assert self._test_mode is False
+        # assert self._test_mode is False
 
         self.Obstacles.doors = []
         self.Obstacles.knobs = []
@@ -509,7 +586,7 @@ class House:
             self.Obstacles.doors.append({'x': self._doors[room].pos_door[0][0], 'y': self._doors[room].pos_door[0][1], 
                                         'theta': self._doors[room].pos_door[0][2], 'width': self._doors[room].dim_door[0], 
                                         'length': self._doors[room].dim_door[1], 'height': self._doors[room].dim_door[2]})
-            self.Obstacles.knobs.append({'x': self._doors['bathroom'].pos_knob[0][0], 'y': self._doors['bathroom'].pos_knob[0][1], 
+            self.Obstacles.knobs.append({'x': self._doors[room].pos_knob[0][0], 'y': self._doors[room].pos_knob[0][1], 
                                         'theta': self._doors[room].pos_knob[0][2], 'width': self._doors[room].dim_knob[0], 
                                         'length': self._doors[room].dim_knob[1], 'height': self._doors[room].dim_knob[2]})
         # Append the door into list of Obstacles' `doors`.
@@ -518,6 +595,8 @@ class House:
 
     def get_room(self, x, y):
         """
+        Return the name of the room given the position of the point coordinates x and y.
+        Return None if point is outside the area or in an illegal position.
         """
         x = x/SCALE + self._offset[0]
         y = y/SCALE + self._offset[1]
@@ -529,8 +608,8 @@ class House:
 
     def generate_plot_obstacles(self, door_generated=True):
         """
-        Generate lines indicating walls, doors, door knobs and furniture for 2D plot.
-        @return lists of coordinates describing lines (walls and doors), points (door knobs) and boxes (furniture).
+        Generate lines indicating walls, doors, door knobs and furniture for 2D plot. Door knobs are excluded if door_generated is `False`.
+        Returns lists of coordinates describing lines (walls and doors), points (door knobs) and boxes (furniture).
         """
         # Declare a list storing all the lines and boxes.
         lines = []
@@ -553,6 +632,7 @@ class House:
                 }
                 lines.append(line)
 
+        # Determine if door knobs are generated beforehand.
         if door_generated:
             for i in range(2):
                 point = self._doors[room].knobs[i].get_pos()[0:2]
@@ -621,7 +701,6 @@ class Door:
 
         # Draw the door and doorknob.
         self.env.add_shapes(shape_type="GEOM_BOX", dim=self.dim_door, mass=0, poses_2d=self.pos_door)
-        # self.env.add_shapes(shape_type="GEOM_BOX",dim=self.dim_knob, mass=0, poses_2d=self.pos_knob)
 
         # Create door knob objects
         knob_offset_xy = DIMS['knob']['offset']/2.0

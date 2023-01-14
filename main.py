@@ -29,10 +29,10 @@ if __name__ == "__main__":
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
         house.generate_walls()
-        # house.generate_doors()
+        house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=DEBUG_MODE)
-        no_rooms = planner.plan_motion(start=[-2.0,-2.0], end=[2.0,2.0], step_size=0.8)
+        no_rooms = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=0.9)
 
         # History
         history = []
@@ -43,7 +43,7 @@ if __name__ == "__main__":
             init_joints = robots[0].set_initial_pos(route[0])
             ob = env.reset(pos=init_joints)
             house.draw_walls()
-            # house.draw_doors(open)
+            house.draw_doors(open)
             house.draw_furniture()
             planner.plot_plan_2d(i)
 

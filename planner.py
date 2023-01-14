@@ -86,14 +86,12 @@ class Planner:
         route = self.path[bifurcation_idx:]
         self._routes.append(route)
 
-        doors = DOORS.copy()
-        self._doors = [doors]
+        self._doors = [self._house._doors_open.copy()]
         for room in room_history:
-            if room == 'living_room':
+            if self._house._doors_open[room] is None:
                 continue
-            doors = doors.copy()
-            doors[room] = True
-            self._doors.append(doors)
+            self._house._doors_open[room] = True
+            self._doors.append(self._house._doors_open.copy())
 
         if self._debug_mode:
             print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
