@@ -25,14 +25,25 @@ class Planner:
         Plan the motion of the mobile manipulator with a starting position and a final position.
         @DISCLAIMER: Manually-written motion planning as of the moment.
         """
-        MIN_CORNER, MAX_CORNER = self._house._corners
+        # def assert_coordinates(coord, type):
+        #     assert MIN_CORNER[0] <= coord[0] <= MAX_CORNER[0], f"{type} x-position outside of expected range, got: {MIN_CORNER[0]} <= {start[0]} <= {MAX_CORNER[0]}"
+        #     assert MIN_CORNER[1] <= coord[1] <= MAX_CORNER[1], f"{type} y-position outside of expected range, got: {MIN_CORNER[1]} <= {start[1]} <= {MAX_CORNER[1]}"
 
-        def assert_coordinates(coord, type):
-            assert MIN_CORNER[0] <= coord[0] <= MAX_CORNER[0], f"{type} x-position outside of expected range, got: {MIN_CORNER[0]} <= {start[0]} <= {MAX_CORNER[0]}"
-            assert MIN_CORNER[1] <= coord[1] <= MAX_CORNER[1], f"{type} y-position outside of expected range, got: {MIN_CORNER[1]} <= {start[1]} <= {MAX_CORNER[1]}"
-
-        assert_coordinates(start, 'Start')
-        assert_coordinates(end, 'End')
+        # assert_coordinates(start, 'Start')
+        # assert_coordinates(end, 'End')
+        if not self._test_mode:
+            room_pos = {
+                'bathroom': [7.5, 1.875],
+                'top_bedroom': [-5.25, 2.25],
+                'bottom_bedroom': [-6.75, -3],
+                'kitchen': [5.25, 2.25],
+                'living_room': [2.0, 4.5],
+            }
+            start_pos = room_pos[start]
+            final_pos = room_pos[end]
+        else:
+            start_pos = start
+            final_pos = end
 
         # Coordinates of obstacles
         self._lines, self._points, self._boxes = self._house.generate_plot_obstacles(door_generated=False)
@@ -57,13 +68,12 @@ class Planner:
             obstacle_list.append(obstacle_right)
             obstacle_list.append(obstacle_up)
             obstacle_list.append(obstacle_down)
-        
+
+        MIN_CORNER, MAX_CORNER = self._house._corners
         house_dim = [MIN_CORNER, MAX_CORNER]
-        
         if self._debug_mode:
             start_time = time.time()
-
-        self.rrt = RRT(start=start, goal=end, dim=house_dim, obstacle_list=obstacle_list, step_size=step_size, max_iter=max_iter, debug_mode=self._debug_mode)
+        self.rrt = RRT(start=start_pos, goal=final_pos, dim=house_dim, obstacle_list=obstacle_list, step_size=step_size, max_iter=max_iter, debug_mode=self._debug_mode)
         self.path, path_cost = self.rrt.find_path()
 
         assert self.path is not None, f"There is no optimal path found with RRT* with parameters `step_size` {step_size} and `max_iter` {max_iter}. Please restart the simulation or adjust the parameters."
@@ -169,7 +179,7 @@ class Planner:
             magnitude_x = x2[0] - x1[0]
             magnitude_y = x2[1] - x1[1]
             theta = np.arctan2(magnitude_y, magnitude_x)
-            ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
+            ax.arrow(x1[0], x1[1], magnitude_x*(1-0.25*np.cos(theta)), magnitude_y*(1-0.25*np.sin(theta)), color='g', head_width=0.2, width=0.05)
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
         plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
@@ -191,7 +201,6 @@ class RRT:
         Helper function
         """
         return np.linalg.norm(np.array(point_2) - np.array(point_1))
-        # return np.sqrt((point_1[0]-point_2[0])**2 + (point_1[1]-point_2[1])**2)
 
     def get_heuristic(self, point):
         """

@@ -92,7 +92,7 @@ class House:
                     {'x1': self._points['A'][0].item(), 'y1': self._points['A'][1].item(), 'x2': self._points['P'][0].item(), 'y2': self._points['P'][1].item()},
                 ],
                 'living_room': [
-                    {'x1': self._points['H'][0].item(), 'y1': self._points['H'][1].item(), 'x2': self._points['E'][0].item(), 'y2': self._points['E'][1].item()},
+                    {'x1': self._points['M'][0].item(), 'y1': self._points['M'][1].item(), 'x2': self._points['E'][0].item(), 'y2': self._points['E'][1].item()},
                     {'x1': self._points['Q'][0].item(), 'y1': self._points['Q'][1].item(), 'x2': self._points['S'][0].item(), 'y2': self._points['S'][1].item()},
                     {'x1': self._points['X'][0].item(), 'y1': self._points['X'][1].item(), 'x2': self._points['W'][0].item(), 'y2': self._points['W'][1].item()},
                 ],
@@ -106,6 +106,7 @@ class House:
                 'living_room': None,
             }
 
+
         # Set the environment to testing area if `test_mode` is True.
         else:
             self._offset = np.array([2.5, 5.0]) # Offset to center the area.
@@ -115,7 +116,7 @@ class House:
                 'C': np.array([0.0,5.0]),           # Wall vertex.
                 'D': np.array([5.0,5.0]),           # Wall vertex.
                 'E': np.array([0.0,10.0]),          # Wall vertex.
-                'F': np.array([5.0,10.0]),         # Wall vertex.
+                'F': np.array([5.0,10.0]),          # Wall vertex.
                 'G': np.array([2.0,5.0]),           # Wall vertex / door hinge to another room.
                 'H': np.array([3.0,5.0]),           # Wall vertex.
             }
