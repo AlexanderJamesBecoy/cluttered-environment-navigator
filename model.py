@@ -1,6 +1,7 @@
 import numpy as np
 from gym_envs_urdf.urdfenvs.urdf_common.holonomic_robot import HolonomicRobot
 import os
+import time
 
 class Model(HolonomicRobot):
     def __init__(self, dim, urdf="mobilePandaWithGripper.urdf", mode="vel"):
@@ -82,13 +83,23 @@ class Model(HolonomicRobot):
 
             Program exits when either maximum iteration has been reached or all waypoints visited.
         """
-
+        dist = 0.0
+        waypoints_achieved = 0
         for point in waypoints:
             done = False
             i = 0
+            prev = self.state['joint_state']['position'][0:2]
             while (not done and i < iter):
+                pos = self.state['joint_state']['position'][0:2]
+                dist += np.linalg.norm(pos - prev) + np.linalg.norm(self.state['joint_state']['velocity'][0:2]*0.01)
+                prev = pos
                 action, done = self.set_waypoint_action(house, point, self.state, ztol=ztol, rtol=rtol, atol=atol)
                 env.step(action)
                 self.update_state()
                 i += 1
+                if done:
+                    waypoints_achieved += 1
+        
+        return waypoints_achieved, len(waypoints), dist
+
 

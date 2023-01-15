@@ -33,7 +33,7 @@ class Planner:
         # assert_coordinates(end, 'End')
         if not self._test_mode:
             room_pos = {
-                'bathroom': [7.5, 1.875],
+                'bathroom': [7.5, -1.875],
                 'top_bedroom': [-5.25, 2.25],
                 'bottom_bedroom': [-6.75, -3],
                 'kitchen': [5.25, 2.25],
@@ -112,7 +112,7 @@ class Planner:
             print(f'Doors: {self._doors}')
             # print(f'Routes: {self._routes}')
 
-        return len(self._routes)
+        return len(self._routes), path_cost, start_pos, final_pos
 
     def generate_waypoints(self, room):
         # assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
@@ -330,7 +330,8 @@ class RRT:
                     dead_end = True
                     for vertex in self.vertices:
                         if vertex[0] == cur_point[3]:
-                            print(f'Append vertex to path: {vertex[1:3]}, length: {len(path)}')
+                            if self.debug_mode:
+                                print(f'Append vertex to path: {vertex[1:3]}, length: {len(path)}')
                             cur_point = vertex
                             path.append(vertex[1:3])
                             dead_end = False
