@@ -159,7 +159,14 @@ class Planner:
 
         # Plot RRT
         for vertex in self.rrt.vertices:
-            ax.plot(vertex[1], vertex[2], color='gray', marker='o', markersize=1)
+            if vertex[3] is None:
+                continue
+            coord = vertex[1:2]
+            parent = self.rrt.vertices[vertex[3]]
+            x = [parent[1], vertex[1]]
+            y = [parent[2], vertex[2]]
+            ax.plot(x, y, color='gray', alpha=0.6, linewidth=1)
+            # ax.plot(vertex[1], vertex[2], color='gray', marker='o', markersize=1)
         
         # Plot the route as red vectors.
         if self.path is not None:
@@ -169,20 +176,22 @@ class Planner:
                 magnitude_x = x2[0] - x1[0]
                 magnitude_y = x2[1] - x1[1]
                 theta = np.arctan2(magnitude_y, magnitude_x)
-                ax.arrow(x1[0], x1[1], magnitude_x-0.05*np.cos(theta), magnitude_y-0.05*np.sin(theta), color='r', head_width=0.05, width=0.01)
-                circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
-                ax.add_patch(circle)
+                ax.arrow(x1[0], x1[1], magnitude_x*(1-0.05*np.cos(theta)), magnitude_y*(1-0.05*np.sin(theta)), color='r', head_width=0.05, width=0.05)
+                # circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
+                # ax.add_patch(circle)
 
-        for i in range(1,len(self._routes[room_idx])):
-            x1 = self._routes[room_idx][i-1]
-            x2 = self._routes[room_idx][i]
-            magnitude_x = x2[0] - x1[0]
-            magnitude_y = x2[1] - x1[1]
-            theta = np.arctan2(magnitude_y, magnitude_x)
-            ax.arrow(x1[0], x1[1], magnitude_x*(1-0.25*np.cos(theta)), magnitude_y*(1-0.25*np.sin(theta)), color='g', head_width=0.2, width=0.05)
+        # for i in range(1,len(self._routes[room_idx])):
+        #     x1 = self._routes[room_idx][i-1]
+        #     x2 = self._routes[room_idx][i]
+        #     magnitude_x = x2[0] - x1[0]
+        #     magnitude_y = x2[1] - x1[1]
+        #     theta = np.arctan2(magnitude_y, magnitude_x)
+        #     ax.arrow(x1[0], x1[1], magnitude_x*(1-0.25*np.cos(theta)), magnitude_y*(1-0.25*np.sin(theta)), color='g', head_width=0.2, width=0.05)
+
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
-        plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
+        # plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
+        plt.title(f'RRT* implementation with step size: {self.rrt.step_size} m')
         plt.show()
 
 class RRT:

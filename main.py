@@ -21,7 +21,7 @@ waypoints_achieveds = []
 nos_waypoints = []
 time_history = []
 rrt_time = 0
-step_size = 0.25
+step_size = 0.1
 start = 'top_bedroom'
 end = 'bathroom'
 pos = [0.,0.]
@@ -48,10 +48,10 @@ if __name__ == "__main__":
         planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=DEBUG_MODE)
         # no_rooms = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=0.2, max_iter=5000)
         no_rooms = 0
-        for i in range(100):
+        for i in range(5):
             print(i)
             start_time = time.time()
-            no_rooms, rrt_dist, pos[0], pos[1] = planner.plan_motion(start=start, end=end, step_size=step_size, max_iter=10000)
+            no_rooms, rrt_dist, pos[0], pos[1] = planner.plan_motion(start=start, end=end, step_size=step_size, max_iter=100000)
             rrt_time = time.time() - start_time
             rrt_times.append(rrt_time)
             rrt_dists.append(rrt_dist)
