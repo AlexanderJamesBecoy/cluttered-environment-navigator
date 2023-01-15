@@ -56,7 +56,7 @@ if __name__ == "__main__":
         # house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=True, debug_mode=False)
-        no_rooms = planner.plan_motion(init_position[:2], end_position[:2], step_size=0.5)
+        no_rooms = planner.plan_motion(init_position[:2], end_position[:2], step_size=1)
         planner.plot_plan_2d(0)
         house.draw_walls()
         # house.draw_doors(is_open)

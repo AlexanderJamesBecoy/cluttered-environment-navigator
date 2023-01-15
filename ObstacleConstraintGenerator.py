@@ -33,13 +33,15 @@ class ObstacleConstraintsGenerator:
 
         # Get all sides that point away from the robot
         V = p0[:2] - self.surfaces[:, 0]
-        n = [normal@v < 0 for v, normal in zip(V, self.normals)]
+        n = [normal@v > 0 for normal, v in zip(self.normals, V)]
+        print([normal@v for normal, v in zip(self.normals, V)])
         print(n)
-        distances_to_faces = self.constraints - self.normals@p0[:2]
+        distances_to_faces = np.abs(self.normals@p0[:2] + self.constraints)
+        distances_to_faces[n] = 1e6
         closest_idx = np.argpartition(distances_to_faces, 2)
+        print(distances_to_faces)
         print(closest_idx)
-        print(closest_idx[n])
-        self.act[closest_idx[n][-2]] = 0 # Set the closest indices to 0 to activate the corresponding constraint
+        self.act[closest_idx[:2]] = 0 # Set the closest indices to 0 to activate the corresponding constraint
         print(self.act)
         return self.act
 
