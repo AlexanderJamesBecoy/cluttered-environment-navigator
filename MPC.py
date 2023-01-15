@@ -5,7 +5,7 @@ from model import Model
 # Default value for the cost function multipliers: these values are the same of the Max Spahn, 2021 paper
 weight_tracking_default_base = 5.0
 weight_tracking_default_theta = 2.0
-weight_tracking_default_arm = 0.7
+weight_tracking_default_arm = 0.0 # 0.7
 weight_input_default_base = 0.0 # 0.05
 weight_input_default_theta = 0.0 # 0.05
 weight_input_default_arm = 5.02
@@ -112,7 +112,7 @@ class MPController:
         self.add_constraints()
         p_opts = dict(print_time=False, verbose=False)
         # s_opts = dict(print_level=0, tol=5e-1, acceptable_constr_viol_tol=0.01)
-        s_opts = {"max_cpu_time": 0.5, 
+        s_opts = {"max_cpu_time": 5., 
 				  "print_level": 0, 
 				  "tol": 5e-1, 
 				  "dual_inf_tol": 5.0, 

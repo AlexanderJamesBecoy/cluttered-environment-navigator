@@ -37,16 +37,16 @@ if __name__ == "__main__":
         # house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=TEST_MODE)
-        no_rooms = planner.plan_motion()
+        no_rooms = planner.plan_motion(start=[-2, 0], end=[2, 0])
 
         # History
         history = []
 
         for room in range(no_rooms):
             # Generate environment
-            route, open = planner.generate_waypoints(room)
+            route = planner.generate_waypoints(room)
             init_joints = robots[0].set_initial_pos(route[0])
-            start_pos = robots[0].set_initial_pos([-3, -3])
+            start_pos = robots[0].set_initial_pos([-2, 0])
             ob = env.reset(pos=start_pos)
             house.draw_walls()
             # house.draw_doors(open)
@@ -55,11 +55,11 @@ if __name__ == "__main__":
 
             # Follow a path set by waypoints z
             MPC = MPController(robots[0])
-            goal = np.array([3, 3, 0, 0, 0, 0, 0])
+            goal = np.array([2, 0, 0, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0
             vertices = np.array(house.Obstacles.getVertices())
-            C_free = FreeSpace(vertices, [-3, -3, 0.4])
+            C_free = FreeSpace(vertices, [-2, 0, 0.4])
             while(1):
                 ob, _, _, _ = env.step(action)
                 state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                     A = np.hstack((A, zero_col))
                     
                 else:
-                    if (k%10 == 0):
+                    if (k%1 == 0):
                         p0 = [state0[0], state0[1], 0.4]
                         A, b = C_free.update_free_space(p0)
                         # C_free.show_elli(vertices, p0)
