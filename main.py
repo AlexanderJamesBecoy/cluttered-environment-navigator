@@ -9,7 +9,8 @@ from house import House
 from planner import Planner
 import warnings
 
-TEST_MODE = True # Boolean to initialize test mode to test the MPC
+TEST_MODE = False # Boolean to initialize test mode to test the MPC
+DEBUG_MODE = True # Boolean to display the states.
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
 
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
@@ -48,23 +49,23 @@ if __name__ == "__main__":
             'kitchen':          True,
         }
         house.generate_walls()
-        # house.generate_doors()
+        house.generate_doors()
         house.generate_furniture()
-        planner = Planner(house=house, test_mode=TEST_MODE)
-        no_rooms = planner.plan_motion()
+        planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=DEBUG_MODE)
+        no_rooms = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=0.2, max_iter=5000)
 
         # History
         history = []
 
-        for room in range(no_rooms):
+        for i in range(no_rooms):
             # Generate environment
-            route, open = planner.generate_waypoints(room)
+            route, open = planner.generate_waypoints(i)
             init_joints = robots[0].set_initial_pos(route[0])
             ob = env.reset(pos=init_joints)
             house.draw_walls()
-            # house.draw_doors(open)
+            house.draw_doors(open)
             house.draw_furniture()
-            planner.plot_plan_2d(route)
+            planner.plot_plan_2d(i)
 
             # Follow a path set by waypoints   z
             robots[0].follow_path(env=env, house=house, waypoints=route)
