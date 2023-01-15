@@ -77,15 +77,16 @@ if __name__ == "__main__":
                         # C_free.show_elli(vertices, p0)
                 k += 1
                 #start_time = time.time()
-                try:
-                    actionMPC = MPC.solve_MPC(state0, goal, A, b)
-                except:
-                    MPC.opti.debug.show_infeasibilities()
-                    print("x: \n{}\nu :\n{}\n".format(MPC.opti.debug.value(MPC.x), MPC.opti.debug.value(MPC.u)))
-                    print("A: \n{}\nb: \n{}\n".format(A@state0[:3], b))
-                    C_free.show_elli(vertices, p0)
-                #end_time = time.time()
-                #print("MPC computation time: ", end_time - start_time)
+                # try:
+                #     actionMPC = MPC.solve_MPC(state0, goal, A, b)
+                # except:
+                #     MPC.opti.debug.show_infeasibilities()
+                #     print("x: \n{}\nu :\n{}\n".format(MPC.opti.debug.value(MPC.x), MPC.opti.debug.value(MPC.u)))
+                #     print("A: \n{}\nb: \n{}\n".format(A@state0[:3], b))
+                #     C_free.show_elli(vertices, p0)
+                # end_time = time.time()
+                # print("MPC computation time: ", end_time - start_time)
+                actionMPC = MPC.solve_MPC(state0, goal, A, b)
 
                 action = np.zeros(env.n())
                 for i, j in enumerate(robots[0]._dofs):
