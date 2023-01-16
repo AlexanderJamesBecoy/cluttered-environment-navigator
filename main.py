@@ -1,5 +1,9 @@
 import gym
 import numpy as np
+import matplotlib as mpl
+mpl.use('TkAgg')
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from model import Model
 from house import House
 from planner import Planner
@@ -14,7 +18,6 @@ R_RADIUS = 0.2
 R_HEIGHT = 0.3
 
 if __name__ == "__main__":
-
     show_warnings = False
     warning_flag = "default" if show_warnings else "ignore"
     with warnings.catch_warnings():
@@ -26,6 +29,25 @@ if __name__ == "__main__":
         robots[0]._urdf.center
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
+        env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
+        env = gym.make(
+            "urdf-env-v0",
+            dt=0.01, robots=robots, render=True
+        )
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE)
+
+
+        # Generate environment
+        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        ob = env.reset(pos=start_pos)
+        is_open = {
+            'bathroom':         True,
+            'outdoor':          True,
+            'top_bedroom':      True,
+            'bottom_bedroom':   True,
+            'kitchen':          True,
+        }
         house.generate_walls()
         house.generate_doors()
         house.generate_furniture()

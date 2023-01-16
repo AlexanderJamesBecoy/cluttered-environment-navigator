@@ -108,12 +108,12 @@ class House:
 
         # Set the environment to testing area if `test_mode` is True.
         else:
-            self._offset = np.array([2.5, 5.0]) # Offset to center the area.
+            self._offset = np.array([2.5, 1.0]) # Offset to center the area.
             self._points = {                    # List of vertices for walls and door hinges.
                 'A': np.array([0.0,0.0]),           # Wall vertex.
                 'B': np.array([5.0,0.0]),           # Wall vertex.
-                'C': np.array([0.0,5.0]),           # Wall vertex.
-                'D': np.array([5.0,5.0]),           # Wall vertex.
+                'C': np.array([0.0,2.0]),           # Wall vertex.
+                'D': np.array([5.0,2.0]),           # Wall vertex.
                 'E': np.array([0.0,10.0]),          # Wall vertex.
                 'F': np.array([5.0,10.0]),         # Wall vertex.
                 'G': np.array([2.0,5.0]),           # Wall vertex / door hinge to another room.
@@ -123,13 +123,13 @@ class House:
                 'test1': [
                     {'x1': self._points['A'][0].item(), 'y1': self._points['A'][1].item(), 'x2': self._points['D'][0].item(), 'y2': self._points['D'][1].item()},
                 ],
-                'test2': [
-                    {'x1': self._points['C'][0].item(), 'y1': self._points['C'][1].item(), 'x2': self._points['F'][0].item(), 'y2': self._points['F'][1].item()},
-                ]
+                # 'test2': [
+                #     {'x1': self._points['C'][0].item(), 'y1': self._points['C'][1].item(), 'x2': self._points['F'][0].item(), 'y2': self._points['F'][1].item()},
+                # ]
             }
             self._doors_open = {                # History of which doors are open.
                 'test1':    None,
-                'test2':    False,
+                # 'test2':    False,
             }
 
         # Adjust the list of vertices to the centering offset.
@@ -187,12 +187,12 @@ class House:
                 [self._points['A'], self._points['B']],
                 [self._points['A'], self._points['C']],
                 [self._points['B'], self._points['D']],
-                # [self._points['C'], self._points['D']],
-                [self._points['C'], self._points['E']],
-                [self._points['D'], self._points['F']],
-                [self._points['E'], self._points['F']],
-                [self._points['C'], self._points['G']],
-                [self._points['H'], self._points['D']],
+                [self._points['C'], self._points['D']]
+                # [self._points['C'], self._points['E']],
+                # [self._points['D'], self._points['F']],
+                # [self._points['E'], self._points['F']]
+                # [self._points['C'], self._points['G']],
+                # [self._points['H'], self._points['D']],
             ])
 
         # Iterate each wall edge, obtain length and append information to list `self._walls` and Obstacle's list of walls.
@@ -238,8 +238,8 @@ class House:
             'dim': dim,
             'place_height': None,
         }
-        # Append the furniture into the list of furniture `self._furniture` and Obstacle's list of furniture.
-        self._furniture.append(furniture)  
+        self._furniture.append(furniture)
+        self.Obstacles.furnitures.append({'x': pos_x, 'y': pos_y, 'width': dim[0], 'length': dim[1], 'height': dim[2]})
         # self.Obstacles[urdf].append(self._furniture[urdf]) # TODO
 
     def add_furniture_box(self, name, pos, dim, place_height=None):
@@ -256,6 +256,9 @@ class House:
         }
         # Append the furniture into the list of furniture `self._furniture` and Obstacle's list of furniture.
         self._furniture.append(furniture)
+        if place_height is None:
+            place_height = 0.0
+        self.Obstacles.furnitures.append({'x': pos[0], 'y': pos[1], 'z': place_height, 'width': dim[0], 'length': dim[1], 'height': dim[2]})
 
     def generate_furniture(self):
         """
@@ -493,44 +496,44 @@ class House:
         # Generate the furniture belonging to testing area if `test_mode` is True.
         else:
             # @TEST_MODE:
-            self.add_furniture_box(
-                name='box_1',
-                pos=[
-                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
-                    (self._points['B'][1].item()+self._points['D'][1].item())/2.0,
-                    0.,
-                ],
-                dim=np.array([1.0,1.0,1.0])
-            )
-            self.add_furniture_box(
-                name='box_2',
-                pos=[
-                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
-                    (self._points['D'][1].item()+self._points['F'][1].item())/2.0,
-                    0.,
-                ],
-                dim=np.array([1.0,1.0,1.0])
-            )
+            # self.add_furniture_box(
+            #     name='box_1',
+            #     pos=[
+            #         (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+            #         (self._points['B'][1].item()+self._points['D'][1].item())/2.0,
+            #         0.,
+            #     ],
+            #     dim=np.array([1.0,1.0,1.0])
+            # )
+            # self.add_furniture_box(
+            #     name='box_2',
+            #     pos=[
+            #         (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+            #         (self._points['D'][1].item()+self._points['F'][1].item())/2.0,
+            #         0.,
+            #     ],
+            #     dim=np.array([1.0,1.0,1.0])
+            # )
             self.add_furniture_box(
                 name='bar_1',
                 pos=[
                     (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
                     (self._points['B'][1].item()+self._points['D'][1].item())/2.0,
-                    np.pi/2.0,
+                    0.0,
                 ],
-                dim=np.array([1.0, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
-                place_height=1.2,
+                dim=np.array([0.3, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
+                place_height=1.4,
             )
-            self.add_furniture_box(
-                name='bar_2',
-                pos=[
-                    (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
-                    (self._points['D'][1].item()+self._points['F'][1].item())/2.0,
-                    np.pi/2.0,
-                ],
-                dim=np.array([1.0, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
-                place_height=1.2,
-            )
+            # self.add_furniture_box(
+            #     name='bar_2',
+            #     pos=[
+            #         (self._points['A'][0].item()+self._points['B'][0].item())/2.0,
+            #         (self._points['D'][1].item()+self._points['F'][1].item())/2.0,
+            #         0.0,
+            #     ],
+            #     dim=np.array([0.3, self._points['D'][1].item() - self._points['A'][1].item(), 0.2]),
+            #     place_height=1.4,
+            # )
 
     def draw_furniture(self):
         """
@@ -539,6 +542,7 @@ class House:
         # Determine if furniture exist.
         assert len(self._furniture) > 0, f"There are no furniture. Run house.generate_furniture() before executing this method."
 
+        # ADD Furnitures ABOVE THIS LINE!
         for furniture in self._furniture:
         # Add all furniture in `self._furniture` dictionary into the Gym environment.
             # self._env.add_obstacle(self._furniture[furniture])

@@ -202,7 +202,7 @@ class Planner:
         
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
-        plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
+        # plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
         plt.show()
 
 class RRT:
