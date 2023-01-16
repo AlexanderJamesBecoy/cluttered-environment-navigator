@@ -8,7 +8,7 @@ from model import Model
 from house import House
 from planner import Planner
 import warnings
-from arm_MPC import MPController
+from arm_MPC import ArmMPController
 from free_space import FreeSpace
 import time
 from drawing import draw_region
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             planner.plot_plan_2d(route)
 
             # Follow a path set by waypoints z
-            MPC = MPController(robots[0])
+            MPC = ArmMPController(robots[0])
             goal = np.array([2, 0, 0, 0, 0, 0, 0])
             action = np.zeros(env.n())
             k = 0

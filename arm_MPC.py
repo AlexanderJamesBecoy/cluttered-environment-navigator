@@ -33,7 +33,7 @@ STEPS = 5
 
 
 
-class MPController:
+class ArmMPController:
     """
     This class implement a MPC for a mobile manipulator. The goal is to follow the desired path as precisely as
     possible without violating the dynamics contraints, the limits on the joints and avoiding the obstacles.
