@@ -86,6 +86,7 @@ if __name__ == "__main__":
                 #     C_free.show_elli(vertices, p0)
                 # end_time = time.time()
                 # print("MPC computation time: ", end_time - start_time)
+                
                 actionMPC = MPC.solve_MPC(state0, goal, A, b)
 
                 action = np.zeros(env.n())
@@ -95,5 +96,5 @@ if __name__ == "__main__":
                 # if (k%50 == 0):
                 #     house.Obstacles.display()
                 # k += 1
-        C_free.show_elli(vertices, p0)     
+        C_free.show_elli(vertices, p0)
         env.close()

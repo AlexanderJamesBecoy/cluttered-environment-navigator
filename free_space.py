@@ -27,7 +27,6 @@ class Ellipsoid:
         Initialize the ellipsoid in two different forms:
         ellipsoid = {x = C*y + d | ||y|| <= 1}
         ellipsoid = {x | (x - d)^T * C^-1 * C^-T * (x - d)}
-
         Args:
             center (np.ndarray, optional): center of the ellipsoid. Defaults to np.zeros(SPACE_DIM).
             matrix_C (np.ndarray, optional): matrix of the ellipsoid axes. Defaults to np.eye(SPACE_DIM).
@@ -50,7 +49,6 @@ class FreeSpace:
     def __init__(self, obstacles: list, pos0: np.ndarray = np.zeros(SPACE_DIM)) -> None:
         """
         Initialize the free space, described by the hyperplanes {x | A*x <= b} and the ellipsoid.
-
         Args:
             obstacles (list): list of obstacles, each element of the list contains the vertices on the related obstacle
             pos0 (np.ndarray, optional): initial position of the center of the ellipsoid. Defaults to np.zeros(SPACE_DIM).
@@ -229,7 +227,7 @@ class FreeSpace:
 
         return a_i, b_i
 
-    def show_elli(self, vertices: np.ndarray, p0: np.ndarray, end_point: np.ndarray):
+    def show_elli(self, vertices, p0):
         fig = plt.figure()
         ax = plt.axes(projection='3d')
 
@@ -264,5 +262,4 @@ class FreeSpace:
             ax.scatter(ell_points[0], ell_points[1], ell_points[2], color='blue')
 
         ax.scatter(p0[0], p0[1], p0[2], color='red')
-        ax.scatter(end_point[0], end_point[1], end_point[2], color = 'green')
         plt.show()

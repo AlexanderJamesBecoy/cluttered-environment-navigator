@@ -63,7 +63,7 @@ class ObstacleConstraintsGenerator:
         self.computeVertices(obstacles=self.furnitures, obstacles_name='furnitures')
         self.vertices = np.array(self.vertices)
         self.vertices_open = self.vertices
-        ceiling_height = 1
+        ceiling_height = 1.5
         floor_trt = [np.max(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), -0.1]
         floor_tlt = [np.min(self.vertices[:, :, 0]), np.max(self.vertices[:, :, 1]), -0.1]
         floor_blt = [np.min(self.vertices[:, :, 0]), np.min(self.vertices[:, :, 1]), -0.1]
