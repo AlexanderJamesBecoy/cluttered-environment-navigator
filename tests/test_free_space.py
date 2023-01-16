@@ -6,7 +6,7 @@ from mpl_toolkits import mplot3d
 import numpy as np
 import qpsolvers
 from scipy import sparse
-from free_space import FreeSpace
+from controller.free_space import FreeSpace
 import cvxpy as cp
 import time
 

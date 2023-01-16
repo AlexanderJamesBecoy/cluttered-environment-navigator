@@ -11,10 +11,13 @@ from free_space import FreeSpace
 import matplotlib.pyplot as plt
 import time
 
-TEST_MODE = True # Boolean to initialize test mode to test the MPC
+TEST_MODE = False # Boolean to initialize test mode to test the MPC in test mode, take care that valid start and end positions are set
+INIT_POSITION = [3, -3, 0.4]
+END_POSITION = [-5, -3, 0.4]
+NUM_RUNS = 5 # NUmber of simulations to run
+STEP_SIZE = 10 # How often to compute new actions
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
-METHOD = ''
-TOL = 2e-1
+TOL = 2e-1 # Tolerance of reaching the waypoints
 
 #Dimension of robot base, found in mobilePandaWithGripper.urdf
 R_RADIUS = 0.2
@@ -36,20 +39,17 @@ def main():
         robots = [Model(dim=robot_dim),]
         robots[0]._urdf.center
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
-        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=False)
-        ellipsoids = []
+        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
 
         # History
         history = []
 
         # Set initial and end points
-        init_position = [3, -3, 0.4]
-        end_position = [-5, -3, 0.4]
-        start = np.array([init_position[0], init_position[1], 0, 0, 0, 0, 0])
-        goal = np.array([end_position[0], end_position[1], 0, 0, 0, 0, 0])
+        start = np.array([INIT_POSITION[0], INIT_POSITION[1], 0, 0, 0, 0, 0])
+        goal = np.array([END_POSITION[0], END_POSITION[1], 0, 0, 0, 0, 0])
 
         # Generate the environment
-        start_pos = robots[0].set_initial_pos(init_position[:2])
+        start_pos = robots[0].set_initial_pos(INIT_POSITION[:2])
         ob = env.reset(pos=start_pos)
         is_open = {
             'bathroom':         True,
@@ -58,21 +58,23 @@ def main():
             'bottom_bedroom':   True,
             'kitchen':          True,
         }
+
         house.generate_walls()
-        # house.generate_doors()
         house.generate_furniture()
-        planner = Planner(house=house, test_mode=False, debug_mode=False)
-        no_rooms = planner.plan_motion(init_position[:2], end_position[:2], step_size=1)
-        # planner.plot_plan_2d(0)
+        if not TEST_MODE:
+            house.generate_doors()
+
+        planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=False)
+        no_rooms = planner.plan_motion(INIT_POSITION[:2], END_POSITION[:2], step_size=1)
         house.draw_walls()
-        # house.draw_doors(is_open)
         house.draw_furniture()
+        if not TEST_MODE:
+            house.draw_doors(is_open)
 
         # Initialize MPC controller
-        b, A = house.Obstacles.generateConstraintsCylinder()
+        b, A = house.Obstacles.generateConstraintsCylinder() # Compute the normals and offsets of the walls
         MPC = MPController(robots[0], A.shape)
         action = np.zeros(env.n())
-        # vertices = np.array(house.Obstacles.getVertices())
 
         # Combine the routes
         route = []
@@ -87,84 +89,54 @@ def main():
         route = np.hstack((route, z_col))
 
         # Initial step and observation
-        action = np.zeros(env.n())
-        act = np.ones(len(b)) # Constraint activation variable
         ob, _, _, _ = env.step(action)
         state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
         p0 = [state0[0], state0[1], 0.4]
 
+        # Set initial MPC variables and constraint parameters
         MPC.opti.set_initial(MPC.x[:, 0], state0)
-        # MPC.opti.set_initial(MPC.act, act)
         MPC.add_obstacle_avoidance_constraints(A, b)
         MPC.opti.set_value(MPC.state0, state0)
-        cost = 0
+
         t = 0
         start_time = time.time()
-        for k, waypoint in enumerate(route):
+        for waypoint in route:
             goal = np.array([waypoint[0], waypoint[1], 0, 0, 0, 0, 0])
-            house.Obstacles.getNearestFaces(p0[:2])
-            # house.Obstacles.display(p0)
-            l = 0
-            if (T == 4):
-                break;
+
             while (1):
-                t += 1
                 ob, _, _, _ = env.step(action)
                 state0 = ob['robot_0']['joint_state']['position'][robots[0]._dofs]
                 MPC.opti.set_value(MPC.state0, state0)
                 p0 = [state0[0], state0[1], 0.4]
-                # print("current point")
-                # print(k, p0, waypoint)
                 
                 if (np.allclose(p0, waypoint, rtol=TOL, atol=TOL)):
                     print("Point reached")
                     MPC.opti.set_value(MPC.state0, state0)
                     break
-                
-                # if (l%15 == 0):
-                #     act = house.Obstacles.getNearestFaces(p0[:2])
-                #     MPC.opti.set_value(MPC.act, act)
-                #     # house.Obstacles.display(p0)
-                # l += 1
-                # if (l == 200):
-                #     T += 1
-                #     l = 0
-                #     print("break")
-                #     # break
-                #     act = np.ones(len(b))
-                #     MPC.opti.set_value(MPC.act, act)
-                # print(house.Obstacles.surfaces[act==0])
-                    
-                # try:
-                    # pass
-                if (t%5 == 0):
-                    try:
-                        actionMPC = MPC.solve_MPC(goal)
-                        cost += MPC.opti.value(MPC.cost)
-                        # print(sum(MPC.opti.value(1-MPC.act)))
 
-                    except:
-                        # house.Obstacles.display(p0)
-                        pass
-                    action = np.zeros(env.n())
-                    for i, j in enumerate(robots[0]._dofs):
-                        action[j] = actionMPC[i]
+                if (t%STEP_SIZE == 0):
+                    # Compute the next action
+                    actionMPC = MPC.solve_MPC(goal)
+
+                action = np.zeros(env.n())
+                for i, j in enumerate(robots[0]._dofs):
+                    action[j] = actionMPC[i]
+
+                t += 1
         end_time = time.time()
-
-        print("Elapsed time: {}\nCost: {}\nSteps: {}".format(end_time - start_time, cost, t))
+        print("Elapsed time: {}\nCost: {}\nSteps: {}".format(end_time - start_time, MPC.final_cost, t))
         global_time.append(end_time - start_time)
         global_steps.append(t)
-        global_cost.append(cost)
-        # MPC.opti.set_value(MPC.state0, state0)
+        global_cost.append(MPC.final_cost)
         print("GOAL REACHED!")
         global_T.append(T)
         env.close()
 
 if __name__ == "__main__":
-    for i in range(5):
+    for i in range(NUM_RUNS):
         main()
-        
-    # main()
+
+    print("Performance statistics: \n")
     print("Times per simulation: {}\nCost of simulation: {}\nTotal steps per simulation: {}\n".format(global_time, global_cost, global_steps))
-    print("Average time per step: {}\nAverage cost: {}\n".format(np.sum(np.array(global_time)/np.array(global_steps))/5, np.sum(global_cost)/5))
+    print("Average time per step: {}\nAverage cost: {}\n".format(np.sum(np.array(global_time)/np.array(global_steps))/NUM_RUNS, np.sum(global_cost)/NUM_RUNS))
     

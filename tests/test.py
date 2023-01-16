@@ -4,12 +4,12 @@ import matplotlib as mpl
 mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-from model import Model
-from house import House
-from planner import Planner
+from controller.model import Model
+from house.house import House
+from house.planner import Planner
 import warnings
-from MPC import MPController
-from free_space import FreeSpace
+from controller.MPC import MPController
+from controller.free_space import FreeSpace
 import time
 
 TEST_MODE = True # Boolean to initialize test mode to test the MPC

@@ -15,6 +15,7 @@ weight_terminal_default_arm = 0.7
 
 # Geometry parameters
 offset_z = 0.4
+
 # Denavit-Hartenberg parameters
 d1 = 0.333
 d3 = 0.316
@@ -23,11 +24,13 @@ d7 = 0.107
 a3 = 0.0825
 a4 = 0.0825
 a6 = 0.088
+
 # Sphere constraint clearance
 CLEARANCE1 = 0.3
 CLEARANCE2 = 0.3
+
 # MPC parameters
-DT = 0.75
+DT = 1
 STEPS = 5
 M = 1e6
 
@@ -49,7 +52,7 @@ class MPController:
     weight_terminal_arm: float = weight_terminal_default_arm,
     dt: float = DT, N: int = STEPS):
         """
-        Constructor of the classe.
+        Constructor of the class.
 
         Args:
             model (Model): gym model of the mobile manipulator
@@ -86,6 +89,7 @@ class MPController:
 
         self.dt = dt # Time step of each iteration
         self.N = N # Prediction horizon
+        self.final_cost = 0 # Total cost of the simulation
 
         # Limits on states and input variables
         self.lower_limit_state = self.model.get_observation_space()['joint_state']['position'].low[self.dofs]
@@ -94,14 +98,11 @@ class MPController:
         self.upper_limit_input = self.model.get_observation_space()['joint_state']['velocity'].high[self.dofs]
         self.surface_dim = surface_dim
         self.FHOCP()
-        # self.opti.subject_to(self.x[:, 0] == np.array([-3, -3, 0, 0, 0, 0, 0])) # Initial state constraint
-        self.original_OPTI = self.opti.copy()
 
     def FHOCP(self):
         """
-        Methods to build the Finite Horizon Optimal Control Problem. Given the MPC structure, it declares the
-        optimization varibles (future states and inputs), it defines the cost function, it adds the constraints
-        and it solves the optimization problem.
+            Methods to build the Finite Horizon Optimal Control Problem. Given the MPC structure, it declares the
+            optimization varibles (future states and inputs), defines the cost function, and adds the control constraints.
         """
 
         self.opti = Opti()
@@ -117,8 +118,7 @@ class MPController:
         self.opti.minimize(self.cost)
         self.add_constraints()
         p_opts = dict(print_time=False, verbose=False)
-        # s_opts = dict(print_level=0, tol=5e-1, acceptable_constr_viol_tol=0.01)
-        s_opts = {"max_cpu_time": 1, 
+        s_opts = {"max_cpu_time": 5, 
 				  "print_level": 0, 
 				  "tol": 5e-1, 
 				  "dual_inf_tol": 5.0, 
@@ -132,37 +132,22 @@ class MPController:
 				  "diverging_iterates_tol": 1e20,
                   "nlp_scaling_method": "none"}
         self.opti.solver('ipopt', p_opts, s_opts) # Set solver 'ipopt'
-        self.prev_solution_x = None # Initialization of previous solution (states)
-        self.prev_solution_u = None # Initialization of previous solution (actions)
 
-    def solve_MPC(self, state0: np.ndarray, goal: np.ndarray, A, b) -> np.ndarray:
-
-        # Re-initialize the solver
-        # self.FHOCP()
-        # self.opti.set_value(self.state0, state0) # Set the initial state parameters
+    def solve_MPC(self, goal: np.ndarray) -> np.ndarray:
+        """
+            Updates the goal and solves the optimization problem, returns the next action.
+        """
         self.opti.set_value(self.goal, goal) # Set the goal state parameters
-        # self.add_obstacle_avoidance_constraints(A, b) # Static obstacles avoidance
-
-        # At time t=0 no solution has been computed yet, so we don't have any initial guess
-        # if self.prev_solution_u is None and self.prev_solution_x is None:
-        #     solution = self.opti.solve() # Solve the problem
-        # else:
-        #     self.opti.set_initial(self.x, self.prev_solution_x)
-        #     self.opti.set_initial(self.u, self.prev_solution_u)
-        #     solution = self.opti.solve() # Solve the problem
-        
-        # self.prev_solution_x = solution.value(self.x)
-        # self.prev_solution_u = solution.value(self.u)
         solution = self.opti.solve()
-        # self.opti.debug.show_infeasibilities()
+        self.final_cost += self.opti.value(self.cost)
         return solution.value(self.u[:, 0])
 
     def add_objective_function(self):
         """
-        Methods to build the objective function, made of three terms
-        - cost to the goal (weight_tracking)
-        - cost of the input (weight_input)
-        - cost of the terminal point, distance from the goal at x(n+1) (weight_terminal)
+            Methods to build the objective function, made of three terms
+            - cost to the goal (weight_tracking)
+            - cost of the input (weight_input)
+            - cost of the terminal point, distance from the goal at x(n+1) (weight_terminal)
         """
 
         for k in range(1, self.N): # Iterate over all the steps of the prediction horizon
@@ -172,10 +157,10 @@ class MPController:
 
     def add_constraints(self):
         """
-        Methods to add the constraints:
-        - limits on joints position (x: state)
-        - limits on the joints velocity (u: input)
-        - robot model kinematics/dynamics
+            Methods to add the constraints:
+            - limits on joints position (x: state)
+            - limits on the joints velocity (u: input)
+            - robot model kinematics/dynamics
         """
 
         # Limit constraints
@@ -195,36 +180,27 @@ class MPController:
 
 
     def add_obstacle_avoidance_constraints(self, A, b):
-        for k in range(self.N + 1):
+        """
+            Adds the obstacle avoidance constraints formulated as
+                n dot p <= n dot q + M * b
+                subjected to
+                    sum(b) <= 3
 
-            # First sphere
-            # p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
+                    n: normal vector of the surfaces of obstacles
+                    p: position of the robot
+                    q: point on the surface of the obstacles
+                    M: a very large number
+                    b: variable that controls which constraint is active. If ~1, constraint is inactive because the right hand side
+                       would be very large, and thus the constraint essentially does not exist. Other other hand, if it is ~0, then
+                       the constraint is active because the M is removed.
+
+                Only at most 3 constraints should be active at once, so as to not block the robot in a box.
+        """
+        for k in range(self.N + 1):
             p1 = self.x[:2, k]
             self.opti.subject_to(self.A@p1 <= (self.b - CLEARANCE1 + M * self.act[:, k]))
             self.opti.subject_to(self.opti.bounded(0, self.act[:, k], 1))
-            self.opti.subject_to(sum1(self.act[:, k]) <= self.surface_dim[0]-1)
-            self.opti.subject_to(sum1(self.act[:, k]) >= 3)
-            # self.opti.maximize(sum1(self.act[:, k]))
-            # self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
+            self.opti.subject_to(sum1(1-self.act[:, k]) <= 3)
 
-
-            # for a_i, b_i in zip(A, b):
-                # self.opti.subject_to(a_i[0]*p1[0] + a_i[1]*p1[1] + a_i[2]*p1[2] <= b_i - CLEARANCE1)
-
-            # # Second sphere
-            # p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
-            #     self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
-            #     d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
-
-            # # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
-
-            # for a_i, b_i in zip(A, b):
-            #     self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
         self.opti.set_value(self.A, A)
         self.opti.set_value(self.b, b)
-
-    def refresh_MPC(self):
-        self.opti = self.original_OPTI.copy()
-
-    def getCost(self):
-        return self.cost, self.opti.value(self.cost)
