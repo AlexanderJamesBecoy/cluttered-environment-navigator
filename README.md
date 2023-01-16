@@ -45,12 +45,13 @@ cd door-opener-motion-planner
 Create an Python venv environment and install the required packages, as well as Max Spahn's gym_envs_urdf to run and simulate this project. It is require to have Python > 3.6, or < 3.10.
 ```
 python3 -m venv env
+source env/bin/activate
 git clone https://github.com/maxspahn/gym_envs_urdf
 cd gym_envs_urdf & pip install -e .
 ```
-
+Now install the rest of the Python packages.
 ```
-TODO: missing packages
+pip install casadi qpsolvers cvxpy mosek(optional)
 ```
 
 If you happen to obtain an error when running the script, namely "Missing MotionPlanningGoal or MotionPlanningEnv". Run the following line in `door_motion_planner/gym_envs_urdf/`:
