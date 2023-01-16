@@ -36,7 +36,7 @@ if __name__ == "__main__":
         house.generate_walls()
         # house.generate_doors()
         house.generate_furniture()
-        planner = Planner(house=house, test_mode=TEST_MODE)
+        planner = Planner(house=house, test_mode=TEST_MODE, doors_exist=False)
         no_rooms = planner.plan_motion(start=[-2, 0], end=[2, 0])
 
         # History
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         for room in range(no_rooms):
             # Generate environment
             route = planner.generate_waypoints(room)
-            init_joints = robots[0].set_initial_pos(route[0])
+            init_joints = robots[0].set_initial_pos(route[0][0])
             start_pos = robots[0].set_initial_pos([-2, 0])
             ob = env.reset(pos=start_pos)
             house.draw_walls()
