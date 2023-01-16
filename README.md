@@ -8,7 +8,7 @@ This package simulates a mobile manipulator that navigates a supposedly cluttere
 - Z. Lu
 - G. Mussita
 
-### Structure
+## Structure
 
 This package consists of four main parts:
 - Model
