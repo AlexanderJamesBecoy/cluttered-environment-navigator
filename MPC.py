@@ -5,7 +5,7 @@ from model import Model
 # Default value for the cost function multipliers: these values are the same of the Max Spahn, 2021 paper
 weight_tracking_default_base = 5.0
 weight_tracking_default_theta = 2.0
-weight_tracking_default_arm = 0.7
+weight_tracking_default_arm = 0.0 # 0.7
 weight_input_default_base = 0.0 # 0.05
 weight_input_default_theta = 0.0 # 0.05
 weight_input_default_arm = 5.02
@@ -26,11 +26,11 @@ a4 = 0.0825
 a6 = 0.088
 
 # Sphere constraint clearance
-CLEARANCE1 = 0.3
+CLEARANCE1 = 0.5
 CLEARANCE2 = 0.3
-
+CLEARANCE3 = 0.2
 # MPC parameters
-DT = 1
+DT = 0.5
 STEPS = 5
 M = 1e6
 
@@ -118,7 +118,8 @@ class MPController:
         self.opti.minimize(self.cost)
         self.add_constraints()
         p_opts = dict(print_time=False, verbose=False)
-        s_opts = {"max_cpu_time": 5, 
+        # s_opts = dict(print_level=0, tol=5e-1, acceptable_constr_viol_tol=0.01)
+        s_opts = {"max_cpu_time": 5., 
 				  "print_level": 0, 
 				  "tol": 5e-1, 
 				  "dual_inf_tol": 5.0, 
@@ -202,5 +203,54 @@ class MPController:
             self.opti.subject_to(self.opti.bounded(0, self.act[:, k], 1))
             self.opti.subject_to(sum1(1-self.act[:, k]) <= 3)
 
-        self.opti.set_value(self.A, A)
-        self.opti.set_value(self.b, b)
+            # First sphere
+            p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
+            # self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
+
+
+            for a_i, b_i in zip(A, b):
+                self.opti.subject_to(a_i[0]*p1[0] + a_i[1]*p1[1] + a_i[2]*p1[2] <= b_i - CLEARANCE1)
+
+            # Second sphere
+            p2 = [self.x[0, k] - d3 * sin(self.x[3, k]) * cos(self.x[2, k]) + a3 * cos(self.x[3, k]) * cos(self.x[2, k]), \
+                self.x[1, k] - d3 * sin(self.x[3, k]) * sin(self.x[2, k]) + a3 * cos(self.x[3, k])*sin(self.x[2, k]), \
+                d1 + offset_z + d3 * cos(self.x[3, k]) + a3 * sin(self.x[3, k])]
+            # self.opti.subject_to(A @ p2 <= b - CLEARANCE2)
+
+            for a_i, b_i in zip(A, b):
+                self.opti.subject_to(a_i[0]*p2[0] + a_i[1]*p2[1] + a_i[2]*p2[2] <= b_i - CLEARANCE2)
+
+            # Third sphere
+            p3 = [self.x[0, k] + cos(self.x[2, k]) * (d5 * (sin(self.x[4, k])*(-cos(self.x[3, k])) - cos(self.x[4, k])*sin(self.x[3, k])) \
+                - d7 * (cos(self.x[5, k])*sin(self.x[4, k])*(-cos(self.x[3, k]) - cos(self.x[4, k])*sin(self.x[3, k])) \
+                + sin(self.x[5, k])*(cos(self.x[4, k])*(-cos(self.x[3, k])) + sin(self.x[3, k])*sin(self.x[4, k]))) \
+                - d3 * sin(self.x[3, k]) + a6 * sin(self.x[5, k])*(sin(self.x[4, k])*(-cos(self.x[3, k])) \
+                - cos(self.x[4, k])*sin(self.x[3, k])) \
+                - a6 * cos(self.x[5, k])*(cos(self.x[4, k])*(-cos(self.x[3, k]) + sin(self.x[3, k])*sin(self.x[4, k]))) \
+                + a4 * cos(self.x[4, k])*(-cos(self.x[3, k])) \
+                + a3 * cos(self.x[3, k]) \
+                + a4 * sin(self.x[3, k])*sin(self.x[4, k])),
+                \
+                self.x[1, k] + sin(self.x[2, k]) * (d5 * (sin(self.x[4, k]) * (-cos(self.x[3, k])) \
+                - cos(self.x[4, k])*sin(self.x[3, k])) \
+                - d7 * (cos(self.x[5, k]) * (sin(self.x[4, k]) * (-cos(self.x[3, k])) \
+                - cos(self.x[4, k]) * sin(self.x[3, k])) + sin(self.x[5, k]) * ((cos(self.x[4, k]) * (-cos(self.x[3, k])) \
+                + sin(self.x[3, k]) * sin(self.x[4, k])))) \
+                - d3 * sin(self.x[3, k]) \
+                + a6 * sin(self.x[5, k]) * (sin(self.x[4, k]) * (-cos(self.x[3, k])) \
+                - cos(self.x[4, k]) * sin(self.x[3, k])) \
+                - a6 * cos(self.x[5, k]) * ((cos(self.x[4, k]) * (-cos(self.x[3, k])) \
+                + sin(self.x[3, k]) * sin(self.x[4, k]))) \
+                + a4 * cos(self.x[4, k]) * (-cos(self.x[3, k])) \
+                + a3*cos(self.x[3, k]) + a4 * sin(self.x[3, k]) * sin(self.x[4, k])),
+                \
+                d1+offset_z+d7*(sin(self.x[5, k])*(1*(cos(self.x[3, k])*sin(self.x[4, k])+1*cos(self.x[4, k])*\
+                sin(self.x[3, k])) - sin(self.x[3, k]) * 0 * 0) - cos(self.x[5, k]) * (cos(self.x[3, k]) * cos(self.x[4, k]) - 1 *\
+                sin(self.x[3, k]) * sin(self.x[4, k]))) + d5 * (cos(self.x[3, k]) * cos(self.x[4, k]) - 1 * sin(self.x[3, k]) * sin(self.x[4, k])) + d3 *\
+                cos(self.x[3, k])+a6*sin(self.x[5, k])*(cos(self.x[3, k])*cos(self.x[4, k])-1*sin(self.x[3, k])*sin(self.x[4, k]))+a3*1*\
+                sin(self.x[3, k])-a4*cos(self.x[3, k])*sin(self.x[4, k])+a6*cos(self.x[5, k])*(1*(cos(self.x[3, k])*sin(self.x[4, k])+1*\
+                cos(self.x[4, k]) * sin(self.x[3, k])) - sin(self.x[3, k]) * 0 * 0) - a4 * 1 * cos(self.x[4, k]) * sin(self.x[3, k])\
+                ]
+            
+            for a_i, b_i in zip(A, b):
+                self.opti.subject_to(a_i[0]*p3[0] + a_i[1]*p3[1] + a_i[2]*p3[2] <= b_i - CLEARANCE3)
