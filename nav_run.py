@@ -6,7 +6,7 @@ from model import Model
 from house import House
 from planner import Planner
 import warnings
-from nav_MPC import MPController
+from MPC import MPController
 import time
 
 TEST_MODE = False # Boolean to initialize test mode to test the MPC in test mode, take care that valid start and end positions are set
