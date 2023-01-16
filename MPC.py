@@ -27,8 +27,8 @@ a6 = 0.088
 CLEARANCE1 = 0.3
 CLEARANCE2 = 0.3
 # MPC parameters
-DT = 1
-STEPS = 1
+DT = 0.75
+STEPS = 5
 M = 1e6
 
 
@@ -111,14 +111,14 @@ class MPController:
         self.u = self.opti.variable(len(self.dofs), self.N) # Optimization variables (inputs) over an horizon N
         self.A = self.opti.parameter(self.surface_dim[0], self.surface_dim[1])
         self.b = self.opti.parameter(self.surface_dim[0])
-        self.act = self.opti.parameter(self.surface_dim[0])
+        self.act = self.opti.variable(self.surface_dim[0], self.N+1)
         self.cost = 0. # Initialization of the cost function
         self.add_objective_function()
         self.opti.minimize(self.cost)
         self.add_constraints()
         p_opts = dict(print_time=False, verbose=False)
         # s_opts = dict(print_level=0, tol=5e-1, acceptable_constr_viol_tol=0.01)
-        s_opts = {"max_cpu_time": 0.1, 
+        s_opts = {"max_cpu_time": 1, 
 				  "print_level": 0, 
 				  "tol": 5e-1, 
 				  "dual_inf_tol": 5.0, 
@@ -200,7 +200,11 @@ class MPController:
             # First sphere
             # p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
             p1 = self.x[:2, k]
-            self.opti.subject_to(self.A@p1 <= (self.b - CLEARANCE1 + M * self.act))
+            self.opti.subject_to(self.A@p1 <= (self.b - CLEARANCE1 + M * self.act[:, k]))
+            self.opti.subject_to(self.opti.bounded(0, self.act[:, k], 1))
+            self.opti.subject_to(sum1(self.act[:, k]) <= self.surface_dim[0]-1)
+            self.opti.subject_to(sum1(self.act[:, k]) >= 3)
+            # self.opti.maximize(sum1(self.act[:, k]))
             # self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
 
 
@@ -221,3 +225,6 @@ class MPController:
 
     def refresh_MPC(self):
         self.opti = self.original_OPTI.copy()
+
+    def getCost(self):
+        return self.cost, self.opti.value(self.cost)

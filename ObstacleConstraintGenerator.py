@@ -33,16 +33,25 @@ class ObstacleConstraintsGenerator:
 
         # Get all sides that point away from the robot
         V = p0[:2] - self.surfaces[:, 0]
-        n = [normal@v > 0 for normal, v in zip(self.normals, V)]
-        print([normal@v for normal, v in zip(self.normals, V)])
-        print(n)
-        distances_to_faces = np.abs(self.normals@p0[:2] + self.constraints)
+        n = np.array([normal@v >= 0 for normal, v in zip(self.normals, V)])
+        inverse_n =  1 - n
+        # print([normal@v for normal, v in zip(self.normals, V)])
+        # offsets = []
+        # for offset, b in zip(self.constraints, n):
+        #     if b:
+        #         offsets.append(offset)
+        #     else:
+        #         offsets.append(-offset)
+
+        # distances_to_faces = np.abs(self.normals@p0[:2] + offsets)
+        # distances_to_faces[n] = 1e6
+        distances_to_faces = np.array([np.linalg.norm(p0[:2] - s) for s in self.surfaces[:, 0]])
         distances_to_faces[n] = 1e6
-        closest_idx = np.argpartition(distances_to_faces, 2)
-        print(distances_to_faces)
-        print(closest_idx)
-        self.act[closest_idx[:2]] = 0 # Set the closest indices to 0 to activate the corresponding constraint
-        print(self.act)
+        sorted_idx = np.argsort(distances_to_faces)
+            # print(distances_to_faces)
+        # print(closest_idx)
+        self.act[sorted_idx[:2]] = 0 # Set the closest indices to 0 to activate the corresponding constraint
+        # print(self.act)
         return self.act
 
     def generateConstraintsCylinder(self) -> np.ndarray:
