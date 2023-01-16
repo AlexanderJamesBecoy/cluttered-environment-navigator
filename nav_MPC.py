@@ -28,7 +28,11 @@ a6 = 0.088
 # Sphere constraint clearance
 CLEARANCE1 = 0.5
 CLEARANCE2 = 0.3
+<<<<<<<<< Temporary merge branch 1
 CLEARANCE3 = 0.2
+=========
+
+>>>>>>>>> Temporary merge branch 2
 # MPC parameters
 DT = 0.5
 STEPS = 5
@@ -118,8 +122,12 @@ class MPController:
         self.opti.minimize(self.cost)
         self.add_constraints()
         p_opts = dict(print_time=False, verbose=False)
+<<<<<<<<< Temporary merge branch 1
         # s_opts = dict(print_level=0, tol=5e-1, acceptable_constr_viol_tol=0.01)
         s_opts = {"max_cpu_time": 5., 
+=========
+        s_opts = {"max_cpu_time": 5, 
+>>>>>>>>> Temporary merge branch 2
 				  "print_level": 0, 
 				  "tol": 5e-1, 
 				  "dual_inf_tol": 5.0, 
@@ -203,6 +211,7 @@ class MPController:
             self.opti.subject_to(self.opti.bounded(0, self.act[:, k], 1))
             self.opti.subject_to(sum1(1-self.act[:, k]) <= 3)
 
+<<<<<<<<< Temporary merge branch 1
             # First sphere
             p1 = [self.x[0, k], self.x[1, k], d1 + offset_z]
             # self.opti.subject_to(A @ p1 <= b - CLEARANCE1)
@@ -254,3 +263,7 @@ class MPController:
             
             for a_i, b_i in zip(A, b):
                 self.opti.subject_to(a_i[0]*p3[0] + a_i[1]*p3[1] + a_i[2]*p3[2] <= b_i - CLEARANCE3)
+=========
+        self.opti.set_value(self.A, A)
+        self.opti.set_value(self.b, b)
+>>>>>>>>> Temporary merge branch 2
