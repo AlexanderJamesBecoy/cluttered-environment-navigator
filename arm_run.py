@@ -97,4 +97,3 @@ if __name__ == "__main__":
                 # k += 1
         C_free.show_elli(vertices, p0)     
         env.close()
-        
