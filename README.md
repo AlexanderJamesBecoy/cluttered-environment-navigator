@@ -51,7 +51,7 @@ cd gym_envs_urdf & pip install -e .
 ```
 Now install the rest of the Python packages.
 ```
-pip install casadi qpsolvers cvxpy mosek(optional)
+pip install casadi qpsolvers cvxpy mosek[optional]
 ```
 
 If you happen to obtain an error when running the script, namely "Missing MotionPlanningGoal or MotionPlanningEnv". Run the following line in `door_motion_planner/gym_envs_urdf/`:
