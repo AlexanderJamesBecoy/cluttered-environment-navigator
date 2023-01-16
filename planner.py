@@ -134,7 +134,7 @@ class Planner:
         # assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
         return self._routes[room], self._doors[room]
 
-    def plot_plan_2d(self, room_idx):
+    def plot_plan_2d(self, room_idx=None):
         """
         Make a 2D plot of the house and the found path given the room number.
         """
@@ -185,13 +185,12 @@ class Planner:
                 x2 = self.path[i]
                 magnitude_x = x2[0] - x1[0]
                 magnitude_y = x2[1] - x1[1]
-                theta = np.arctan2(magnitude_y, magnitude_x)
-                ax.arrow(x1[0], x1[1], magnitude_x-0.05*np.cos(theta), magnitude_y-0.05*np.sin(theta), color='r', head_width=0.05, width=0.01)
-                circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
-                ax.add_patch(circle)
+                ax.arrow(x1[0], x1[1], magnitude_x*0.9, magnitude_y*0.9, color='r', head_width=0.2, width=0.01)
+                # circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
+                # ax.add_patch(circle)
 
         # Plot the route in the room as green vectors.
-        if self._doors_exist:
+        if self._doors_exist and room_idx is not None:
             for i in range(1,len(self._routes[room_idx])):
                 x1 = self._routes[room_idx][i-1]
                 x2 = self._routes[room_idx][i]
@@ -199,10 +198,12 @@ class Planner:
                 magnitude_y = x2[1] - x1[1]
                 theta = np.arctan2(magnitude_y, magnitude_x)
                 ax.arrow(x1[0], x1[1], 0.8*magnitude_x*np.cos(theta), 0.8*magnitude_y*np.sin(theta), color='g', head_width=0.2, width=0.05)
+            plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
+        else:
+            plt.title('RRT* implementation')
         
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
-        # plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
         plt.show()
 
 class RRT:

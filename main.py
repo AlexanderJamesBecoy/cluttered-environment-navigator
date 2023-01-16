@@ -29,17 +29,9 @@ if __name__ == "__main__":
         robots[0]._urdf.center
         env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
         house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
-        env = gym.make("urdf-env-v0", dt=0.01, robots=robots, render=True)
-        house = House(env, robot_dim=robot_dim, scale=R_SCALE, test_mode=TEST_MODE)
-        env = gym.make(
-            "urdf-env-v0",
-            dt=0.01, robots=robots, render=True
-        )
-        house = House(env, robot_dim=robot_dim, scale=R_SCALE)
-
 
         # Generate environment
-        start_pos = robots[0].set_initial_pos(3.0,-2.0)
+        start_pos = robots[0].set_initial_pos([3.0,-2.0])
         ob = env.reset(pos=start_pos)
         is_open = {
             'bathroom':         True,
@@ -52,14 +44,14 @@ if __name__ == "__main__":
         house.generate_doors()
         house.generate_furniture()
         planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=DEBUG_MODE)
-        no_rooms = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=0.2, max_iter=5000)
+        _ = planner.plan_motion(start=[-1.5,-4.5], end=[1.5,4.5], step_size=1.0, max_iter=5000)
 
         # History
         history = []
 
-        for i in range(no_rooms):
+        for i in range(1):
             # Generate environment
-            route, open = planner.generate_waypoints(i)
+            route, open = planner.generate_waypoints()
             init_joints = robots[0].set_initial_pos(route[0])
             ob = env.reset(pos=init_joints)
             house.draw_walls()

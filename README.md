@@ -33,8 +33,8 @@ This part contains the MPC which controls the mobile manipulator in order to fol
 
 ### Simulation
 This part contains the house environment and main files in order to run the simulation. Files:
-- **main.py** - simulate the mobile manipulator in the house environment with RRT* and surface-nromal MPC.
-- **nav_run.py** - simulate the mobile manipulator in the test environment with collision-free 3D ellipsoid MPC.
+- **nav_run.py** - simulate the mobile manipulator in the house environment with RRT* and surface-nromal MPC.
+- **arm_run.py** - simulate the mobile manipulator in the test environment with collision-free 3D ellipsoid MPC.
 - house.py - generates the house environment with walls, doors, and furnitures, and a test environment in a simple box with suspended osbtacle.
 
 ## Installation

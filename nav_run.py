@@ -64,6 +64,7 @@ def main():
 
         planner = Planner(house=house, test_mode=TEST_MODE, debug_mode=False)
         no_rooms = planner.plan_motion(INIT_POSITION[:2], END_POSITION[:2], step_size=1)
+        planner.plot_plan_2d()
         house.draw_walls()
         house.draw_furniture()
         if not TEST_MODE:
