@@ -73,6 +73,8 @@ You can change the starting and final position by editing line 13 and 14 of **na
 INIT_POSITION = [x_i, y_i]
 END_POSITION = [x_f, y_f]
 ```
+There are other parameters you can tune in the run files, their usage are described with comments next to them.
+
 Replace x_i, y_i, x_f and y_f for the given coordinates respectively.
 **WARNING**: The values has to be within the house.
 
