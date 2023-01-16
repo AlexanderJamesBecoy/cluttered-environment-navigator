@@ -7,7 +7,8 @@ from house import House
 
 class Planner:
     """
-    
+    This class is dedicated on creating a motion planning for the robot within a given house.
+    It is a sampling-based planner that implements RRT*.
     """
 
     def __init__(self, house: House, test_mode=False, debug_mode=False, doors_exist=True, door_opens=False):
