@@ -10,16 +10,18 @@ class Planner:
     
     """
 
-    def __init__(self, house: House, test_mode=False, debug_mode=False, door_opens=False):
+    def __init__(self, house: House, test_mode=False, debug_mode=False, doors_exist=True, door_opens=False):
         """
         @param house        - store the pointer to House object.
         @param test_mode    - obtain the test house; simple box to test the mobile manipulator functionality.
         @param debug_mode   - let this object print data of motion planning in terminal.
+        @param doors        - boolean to set if doors exist.
         @param door_opens   - make all door opens at beginning if this is True.
         """
         self._house = house
         self._test_mode = test_mode
         self._debug_mode = debug_mode
+        self._doors_exist = doors_exist
         self._door_opens = door_opens
 
     def plan_motion(self, start=[0.,0.], end=[0.,0.], step_size=0.5, max_iter=1000):
@@ -87,7 +89,7 @@ class Planner:
         # Assert if path is found.
         assert self.path is not None, f"There is no optimal path found with RRT* with parameters `step_size` {step_size} and `max_iter` {max_iter}. Please restart the simulation or adjust the parameters."
         
-        # 
+        # Obtain a list of room that the robot will explore.
         room_history = []
         self._routes = []
         bifurcation_idx = 0
@@ -95,9 +97,9 @@ class Planner:
         room_history.append(room)
         for vertex_idx, vertex in enumerate(self.path[1:]):
             room = self._house.get_room(vertex[0], vertex[1])
-            if room is None:
+            if room is None: # Ignore if vertex's room has no unique door
                 continue
-            if room == room_history[-1]:
+            if room == room_history[-1]: # Ignore if vertex's room is same as previous.
                 continue
             route = self.path[bifurcation_idx:vertex_idx+1]
             bifurcation_idx = vertex_idx + 1
@@ -105,7 +107,6 @@ class Planner:
             self._routes.append(route)
         route = self.path[bifurcation_idx:]
         self._routes.append(route)
-
         self._doors = [self._house._doors_open.copy()]
         for room in room_history:
             if self._house._doors_open[room] is None:
@@ -113,6 +114,7 @@ class Planner:
             self._house._doors_open[room] = True
             self._doors.append(self._house._doors_open.copy())
 
+        # Print the information of sampling-based planner implementation if `debug_mode` is activated.
         if self._debug_mode:
             print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
             print(f'Vertices: {len(self.rrt.vertices)}')
@@ -124,18 +126,17 @@ class Planner:
         return len(self._routes)
 
     def generate_waypoints(self, room):
+        """
+        Return a list of points describing a path within a room; given the room number.
+        """
         # assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
         # assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
         return self._routes[room], self._doors[room]
 
-    def generate_trajectory(self, start, end, type=None):
-        # TODO - Linear
-        # TODO - Circular
-        pass
-
     def plot_plan_2d(self, room_idx):
-        # Obtain the line and boxe coordinates of the walls, doors and furniture.
-        # lines, points, boxes = self._house.generate_plot_obstacles()
+        """
+        Make a 2D plot of the house and the found path given the room number.
+        """
 
         # Generate 2D plot of house.
         fig, ax = plt.subplots()
@@ -151,7 +152,7 @@ class Planner:
             ax.plot(x,y, color, linewidth=2)
 
         # Plot the door knobs as points.
-        if self._door_opens:
+        if self._doors_exist:
             for point in self._points:
                 ax.plot(point[0], point[1], color='lime', marker='o', markersize=5)
 
@@ -167,9 +168,14 @@ class Planner:
                 alpha=opacity,
             ))
 
-        # Plot RRT
+        # Plot RRT* tree as gray lines
         for vertex in self.rrt.vertices:
-            ax.plot(vertex[1], vertex[2], color='gray', marker='o', markersize=1)
+            if vertex[3] is None:
+                continue
+            parent = self.rrt.vertices[vertex[3]]
+            x = [parent[1], vertex[1]]
+            y = [parent[2], vertex[2]]
+            ax.plot(x, y, color='gray', alpha=0.6, linewidth=1)
         
         # Plot the route as red vectors.
         if self.path is not None:
@@ -183,13 +189,16 @@ class Planner:
                 circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
                 ax.add_patch(circle)
 
-        for i in range(1,len(self._routes[room_idx])):
-            x1 = self._routes[room_idx][i-1]
-            x2 = self._routes[room_idx][i]
-            magnitude_x = x2[0] - x1[0]
-            magnitude_y = x2[1] - x1[1]
-            theta = np.arctan2(magnitude_y, magnitude_x)
-            ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
+        # Plot the route in the room as green vectors.
+        if self._doors_exist:
+            for i in range(1,len(self._routes[room_idx])):
+                x1 = self._routes[room_idx][i-1]
+                x2 = self._routes[room_idx][i]
+                magnitude_x = x2[0] - x1[0]
+                magnitude_y = x2[1] - x1[1]
+                theta = np.arctan2(magnitude_y, magnitude_x)
+                ax.arrow(x1[0], x1[1], 0.8*magnitude_x*np.cos(theta), 0.8*magnitude_y*np.sin(theta), color='g', head_width=0.2, width=0.05)
+        
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
         plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
