@@ -60,7 +60,27 @@ pip install -e ".[scenes]"
 ```
 
 ## Running the simulation
+You can run the following simulations: **navigation** and **arm functionality**.
+### Navigation simulation
+To simulate the path-finding implementation, run the following line:
+```
+python3 nav_run.py
+```
+This displays a real-time motion of a mobile manipulator in a Gym environment, and a 2D plot of the RRT* implementation.
 
+You can change the starting and final position by editing line 13 and 14 of **nav_run.py**:
+```
+INIT_POSITION = [x_i, y_i]
+END_POSITION = [x_f, y_f]
+```
+Replace x_i, y_i, x_f and y_f for the given coordinates respectively.
+**WARNING**: The values has to be within the house.
+
+### Arm functionality
+To simulate the arm obstacle avoidance, run the following line:
+```
+python3 arm_run.py
+```
 
 ## Credits
 - The furniture URDFs belong to the following websites:

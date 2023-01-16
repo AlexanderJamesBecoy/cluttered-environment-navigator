@@ -10,8 +10,8 @@ from nav_MPC import MPController
 import time
 
 TEST_MODE = False # Boolean to initialize test mode to test the MPC in test mode, take care that valid start and end positions are set
-INIT_POSITION = [3, -3, 0.4]
-END_POSITION = [-5, -3, 0.4]
+INIT_POSITION = [3, -3]
+END_POSITION = [-5, -3]
 NUM_RUNS = 5 # NUmber of simulations to run
 STEP_SIZE = 10 # How often to compute new actions
 R_SCALE = 1.0 #how much to scale the robot's dimensions for collision check
