@@ -109,6 +109,17 @@ class ObstacleConstraintsGenerator:
                 trt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['height']]
                 brt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
                 blt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['height']]
+
+                if obstacles_name == 'furnitures':
+                    tl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['z']]
+                    tr = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['z']]
+                    br = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['z']]
+                    bl = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['z']]
+
+                    tlt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['z']+obstacle['height']]
+                    trt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] + obstacle['length']/2, obstacle['z']+obstacle['height']]
+                    brt = [obstacle['x'] + obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['z']+obstacle['height']]
+                    blt = [obstacle['x'] - obstacle['width']/2, obstacle['y'] - obstacle['length']/2, obstacle['z']+obstacle['height']]
             else:
                 tl = [obstacle['x'] - obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0]
                 tr = [obstacle['x'] + obstacle['length']/2, obstacle['y'] + obstacle['width']/2, 0] 

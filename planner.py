@@ -43,6 +43,8 @@ class Planner:
             obstacle = Obstacle(line['coord'][0], line['coord'][1])
             obstacle_list.append(obstacle)
         for box in self._boxes:
+            if box['floating']:
+                continue
             x1 = box['x']
             y1 = box['y']
             x2 = x1 + box['w']
@@ -84,14 +86,12 @@ class Planner:
         route = self.path[bifurcation_idx:]
         self._routes.append(route)
 
-        doors = DOORS.copy()
-        self._doors = [doors]
-        for room in room_history:
-            if room == 'living_room':
-                continue
-            doors = doors.copy()
-            doors[room] = True
-            self._doors.append(doors)
+        # self._doors = [self._house._doors_open.copy()]
+        # for room in room_history:
+        #     if self._house._doors_open[room] is None:
+        #         continue
+        #     self._house._doors_open[room] = True
+        #     self._doors.append(self._house._doors_open.copy())
 
         if self._debug_mode:
             print(f'RRT: {len(self.path)}') if self.path is not None else print('RRT: 0')
@@ -107,7 +107,7 @@ class Planner:
     def generate_waypoints(self, room):
         # assert len(self._routes[room]) > 0, f"There is no route generated. Run planner.plan_motion() before executing this method."
         # assert len(self._doors[room]) > 0, f"There is no door 'openness' generated. Run planner.plan_motion() before executing this method."
-        return self._routes[room], self._doors[room]
+        return self._routes[room]#, self._doors[room]
 
     def generate_trajectory(self, start, end, type=None):
         # TODO - Linear
@@ -137,14 +137,17 @@ class Planner:
 
         # Plot the furniture as boxes.
         for box in self._boxes:
+            opacity = 1.0
+            if box['floating']:
+                opacity = 0.4
             ax.add_patch(
                 Rectangle((box['x'],box['y']),box['w'],box['h'],
                 facecolor='blue',
                 fill=True,
+                alpha=opacity,
             ))
 
         # Plot RRT
-        # num_points = int(self.rrt.step_size*self.rrt.max_iter)
         for vertex in self.rrt.vertices:
             ax.plot(vertex[1], vertex[2], color='gray', marker='o', markersize=1)
         
@@ -160,26 +163,16 @@ class Planner:
                 circle = plt.Circle((x1[0], x1[1]), self.rrt.step_size, color='orange', fill=False)
                 ax.add_patch(circle)
 
-
-        # Plot the route as red vectors.
-        # for routee in self._routes:
-        #     for i in range(1,len(routee)):
-        #         x1 = routee[i-1]
-        #         x2 = routee[i]
-        #         magnitude_x = x2[0] - x1[0]
-        #         magnitude_y = x2[1] - x1[1]
-        #         theta = np.arctan2(magnitude_y, magnitude_x)
-        #         ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
-        for i in range(1,len(self._routes[room_idx])):
-            x1 = self._routes[room_idx][i-1]
-            x2 = self._routes[room_idx][i]
-            magnitude_x = x2[0] - x1[0]
-            magnitude_y = x2[1] - x1[1]
-            theta = np.arctan2(magnitude_y, magnitude_x)
-            ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
+        # for i in range(1,len(self._routes[room_idx])):
+        #     x1 = self._routes[room_idx][i-1]
+        #     x2 = self._routes[room_idx][i]
+        #     magnitude_x = x2[0] - x1[0]
+        #     magnitude_y = x2[1] - x1[1]
+        #     theta = np.arctan2(magnitude_y, magnitude_x)
+        #     ax.arrow(x1[0], x1[1], magnitude_x-0.25*np.cos(theta), magnitude_y-0.25*np.sin(theta), color='g', head_width=0.2, width=0.05)
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
-        plt.title(f'RRT* implementation on route {room_idx}/{len(self._routes)}')
+        # plt.title(f'RRT* implementation on route {room_idx+1}/{len(self._routes)}')
         plt.show()
 
 class RRT:

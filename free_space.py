@@ -12,9 +12,9 @@ import random
 EPSILON_SPHERE = 0.1
 # SPACE_DIM = 2
 SPACE_DIM = 3
-MAX_ITER = 10
+MAX_ITER = 3
 TOLLERANCE = 0.02
-CHECK_TOLLERANCE = 0.05
+CHECK_TOLLERANCE = 0.01
 
 
 class Ellipsoid:
@@ -73,7 +73,7 @@ class FreeSpace:
         # keep iterating the algorithm
         for i in range(MAX_ITER):
 
-            print("Iteration number: ", i+1, "/", MAX_ITER)
+            # print("Iteration number: ", i+1, "/", MAX_ITER)
             # keep track of the previous determinant to check the tolerance on the relative change in ellipsoid volume
             det_C_prec = np.linalg.det(self.ellipsoid.C)
             
